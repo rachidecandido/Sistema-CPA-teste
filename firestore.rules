@@ -52,9 +52,9 @@ service cloud.firestore {
 
     // Notificações — só o encarregado dono (pelo email de login) pode ler/marcar como lida
     match /notificacoes/{notifId} {
-      allow read: if request.auth != null && request.auth.token.email == resource.data.encEmail;
+      allow read: if request.auth != null && request.auth.token.email.lower() == resource.data.encEmail.lower();
       allow create: if true; // criadas pela app do professor
-      allow update, delete: if request.auth != null && request.auth.token.email == resource.data.encEmail;
+      allow update, delete: if request.auth != null && request.auth.token.email.lower() == resource.data.encEmail.lower();
     }
 
     // Mensagens — leitura pública dentro da conversa (simplificação),
@@ -63,7 +63,7 @@ service cloud.firestore {
     match /mensagens/{msgId} {
       allow read: if true;
       allow create: if request.resource.data.de == 'professor'
-                    || (request.auth != null && request.auth.token.email == request.resource.data.encEmail);
+                    || (request.auth != null && request.auth.token.email.lower() == request.resource.data.encEmail.lower());
       allow update, delete: if false;
     }
   }

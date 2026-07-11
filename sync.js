@@ -72,12 +72,15 @@ async function pullAlunosFromFirebase(){
 const _origSaveDB=saveDB;
 saveDB=function(){
   _origSaveDB();
-  if(db.length){const ultimo=db[db.length-1];syncAlunoToFirebase(ultimo,'cpa');}
+  // Sincroniza TODOS os registos, não só o último — corrige um erro em que
+  // alterações a alunos que não fossem o último do array nunca chegavam ao
+  // Firestore (ex: vincular encarregado/PIN a um aluno lançado há mais tempo).
+  db.forEach(entry=>syncAlunoToFirebase(entry,'cpa'));
 };
 const _origSaveBolDB=saveBolDB;
 saveBolDB=function(){
   _origSaveBolDB();
-  if(dBol.length){const ultimo=dBol[dBol.length-1];syncAlunoToFirebase(ultimo,'bol');}
+  dBol.forEach(entry=>syncAlunoToFirebase(entry,'bol'));
 };
 // Puxa dados assim que o professor entra no perfil
 const _origActivateProf2=activateProf;
@@ -175,9 +178,10 @@ async function carregarConversa(alunoId){
   if(!thread)return;
   thread.innerHTML='<div class="empty">A carregar...</div>';
   try{
-    const snap=await fbDB.collection('mensagens').where('alunoId','==',alunoId).orderBy('data','asc').limit(100).get();
+    const snap=await fbDB.collection('mensagens').where('alunoId','==',alunoId).limit(100).get();
     if(snap.empty){thread.innerHTML='<div class="empty">Sem mensagens ainda.</div>';return}
-    thread.innerHTML=snap.docs.map(doc=>{
+    const docsOrdenados=snap.docs.sort((a,b)=>(a.data().data?.seconds||0)-(b.data().data?.seconds||0));
+    thread.innerHTML=docsOrdenados.map(doc=>{
       const m=doc.data();
       const minha=m.de==='professor';
       return `<div style="text-align:${minha?'right':'left'};margin-bottom:7px"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span></div>`;
