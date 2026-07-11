@@ -7,6 +7,13 @@
 #qrVideo{width:100%;border-radius:12px;background:#000}
 #qrCanvas{display:none}
 
+/* Destaque do item activo no menu ☰ — navegação profissional */
+.di-active{background:rgba(0,201,167,.14)!important;color:var(--ac)!important;border-left:3px solid var(--ac)}
+
+/* Transição suave ao trocar de painel, em vez de "saltar" instantaneamente */
+.sec.active{animation:secFadeIn .22s ease}
+@keyframes secFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
 /* ── LAYOUT DE DUAS COLUNAS PARA TABLET/DESKTOP (largura >= 900px) ── */
 @media(min-width:900px){
   html,body{overflow:auto}

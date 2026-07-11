@@ -1,16 +1,19 @@
 /* ============================================================
-   NAVIGATION.JS — Página Inicial + Confirmação de Saída
-   Fase 1 — Sistema C.P.A
+   NAVIGATION.JS — Navegação Profissional + Confirmação de Saída
+   Fase 5 — Sistema C.P.A
    Depende de: index.html (goto, PA, isAdm)
    ------------------------------------------------------------
    Comportamento do botão "Voltar" do telemóvel/navegador:
-   - Se estiver numa secção diferente da inicial (CPA) → volta à
-     secção inicial, sem fechar o aplicativo.
-   - Se já estiver na secção inicial → pergunta se quer sair.
+   - Anda passo a passo pelas secções realmente visitadas (como
+     um aplicativo nativo profissional), não salta logo para a
+     página inicial.
+   - Quando já não há mais nada no histórico (voltou tudo), pergunta
+     se quer sair do aplicativo.
    ============================================================ */
 
 const HOME_SEC='cpa',HOME_TAB=0;
 let _navFromPop=false;
+let _secAtualNav=HOME_SEC;
 
 // Injecta o modal de confirmação de saída (não depende do modal cfm existente,
 // para não interferir com outras confirmações do sistema)
@@ -32,16 +35,11 @@ function injectExitModal(){
   document.body.appendChild(div);
 }
 
-function secAtiva(){
-  const el=document.querySelector('.sec.active');
-  return el?el.id.replace('sec-',''):'';
-}
-
 function respExit(sair){
   document.getElementById('moExit').classList.remove('open');
   if(!sair){
     // o utilizador quer ficar: recria uma barreira no histórico para o próximo "voltar"
-    history.pushState({sec:HOME_SEC},'','');
+    history.pushState({sec:HOME_SEC,ti:HOME_TAB},'','');
   }
   // se sair=true, não fazemos nada: a navegação de saída já tinha ocorrido
   // e ao não recolocarmos uma barreira, o próximo "voltar" sai mesmo do app.
@@ -49,17 +47,33 @@ function respExit(sair){
 
 function initExitGuard(){
   injectExitModal();
-  history.pushState({sec:HOME_SEC},'','');
+  _secAtualNav=HOME_SEC;
+  history.replaceState({sec:HOME_SEC,ti:HOME_TAB},'','');
 }
 
-window.addEventListener('popstate',function(){
+// ── EMPILHA UMA NOVA SECÇÃO NO HISTÓRICO ──
+// Chamado sempre que o utilizador navega para uma secção diferente da actual
+// (via menu ☰, barra inferior, ou qualquer botão), para que o "Voltar" possa
+// desfazer esse passo especificamente — como um aplicativo nativo.
+const _origGoto=goto;
+goto=function(sec,ti){
+  _origGoto(sec,ti);
+  if(!(PA||isAdm))return;
+  if(!_navFromPop&&sec!==_secAtualNav){
+    history.pushState({sec,ti},'','');
+  }
+  _navFromPop=false;
+  _secAtualNav=sec;
+  atualizarDestaqueDrawer(sec);
+};
+
+window.addEventListener('popstate',function(e){
   if(!(PA||isAdm))return; // ninguém autenticado: comportamento normal do navegador
-  const atual=secAtiva();
-  if(atual&&atual!==HOME_SEC){
+  if(e.state&&e.state.sec){
     _navFromPop=true;
-    goto(HOME_SEC,HOME_TAB);
-    history.pushState({sec:HOME_SEC},'','');
+    goto(e.state.sec,e.state.ti);
   }else{
+    // histórico esgotado: pergunta se quer sair
     document.getElementById('moExit').classList.add('open');
   }
 });
@@ -69,6 +83,16 @@ const _origActivateProf3=activateProf;
 activateProf=function(prof){_origActivateProf3(prof);initExitGuard();};
 const _origActivateAdm2=activateAdm;
 activateAdm=function(){_origActivateAdm2();initExitGuard();};
+
+// ── DESTACA NO MENU ☰ A SECÇÃO ONDE SE ESTÁ ──
+function atualizarDestaqueDrawer(sec){
+  document.querySelectorAll('.di').forEach(b=>b.classList.remove('di-active'));
+  const alvo=[...document.querySelectorAll('.di')].find(b=>{
+    const onclick=b.getAttribute('onclick')||'';
+    return onclick.includes(`goto('${sec}'`)||onclick.includes(`goto("${sec}"`);
+  });
+  if(alvo)alvo.classList.add('di-active');
+}
 
 // ── EXPIRAÇÃO DE SESSÃO POR INACTIVIDADE ──
 // Por defeito, 10 minutos sem toques/cliques/teclas fazem logout automático.

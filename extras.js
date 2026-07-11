@@ -105,8 +105,8 @@ function applyExamModeUI(){
 function gerarMeuQR(){
   if(!PA){toast('Disponível apenas para perfis de Professor.','error');return}
   if(typeof QRCode==='undefined'){toast('Biblioteca de QR não carregada.','error');return}
-  const payload=JSON.stringify({id:PA.id,pin:PA.pin});
-  document.getElementById('moQRB').innerHTML=`<div style="text-align:center"><div style="font-size:.82rem;color:var(--mu);margin-bottom:11px">Mostre este código para entrar rapidamente sem digitar o PIN.</div><div id="qrCanvasHolder" style="display:inline-block;background:#fff;padding:12px;border-radius:12px"></div><div style="font-size:.68rem;color:var(--mu);margin-top:10px">⚠️ Não partilhe este código — ele dá acesso ao seu perfil.</div></div>`;
+  const payload=JSON.stringify({id:PA.id,pin:PA.pin,nome:PA.nome,av:PA.av||'👨‍🏫'});
+  document.getElementById('moQRB').innerHTML=`<div style="text-align:center"><div style="font-size:.82rem;color:var(--mu);margin-bottom:11px">Mostre este código para entrar rapidamente sem digitar o PIN — funciona neste dispositivo, e também para <b>levar o seu perfil para outro telemóvel</b> (as notas já lançadas continuam a aparecer).</div><div id="qrCanvasHolder" style="display:inline-block;background:#fff;padding:12px;border-radius:12px"></div><div style="font-size:.68rem;color:var(--mu);margin:10px 0 4px">⚠️ Não partilhe este código — ele dá acesso ao seu perfil.</div><div class="fl" style="text-align:left;margin-top:9px">Sem câmara? Copie este código de texto:</div><textarea class="fi" readonly onclick="this.select()" style="font-size:.68rem;resize:none" rows="2">${payload}</textarea></div>`;
   document.getElementById('moQR').classList.add('open');
   const holder=document.getElementById('qrCanvasHolder');
   holder.innerHTML='';
@@ -178,16 +178,43 @@ function tickQR(){
 }
 
 // Processa o texto lido de um QR (venha da câmara ou de uma imagem da galeria)
+// ── IMPORTAR PERFIL POR CÓDIGO DE TEXTO (alternativa sem câmara) ──
+function abrirImportarCodigo(){
+  document.getElementById('importCodInput').value='';
+  document.getElementById('moImportCod').classList.add('open');
+}
+function importarPorCodigo(){
+  const texto=document.getElementById('importCodInput').value.trim();
+  if(!texto){toast('Cole o código primeiro!','error');return}
+  closeModal('moImportCod');
+  handleQRDetectado(texto);
+}
+
 function handleQRDetectado(qrTexto){
   try{
     const d=JSON.parse(qrTexto);
+    if(!d.id||!d.pin){throw new Error('formato inválido')}
     const profs=gProfs();
-    const p=profs.find(x=>x.id===d.id&&x.pin===d.pin);
+    let p=profs.find(x=>x.id===d.id&&x.pin===d.pin);
     if(p){
       activateProf(p);
       toast('Entrada por QR bem-sucedida!','success');
+      return;
+    }
+    // Perfil não existe neste dispositivo: se o QR trouxer o nome, é um QR
+    // de "levar perfil" — importa-o mantendo o mesmo ID, para que os dados
+    // já sincronizados no Firebase reapareçam automaticamente.
+    if(d.nome){
+      cfm(`Importar o perfil de "${d.nome}" para este dispositivo? As notas já lançadas por este professor vão aparecer automaticamente assim que houver internet.`,()=>{
+        const novoPerfil={id:d.id,pin:d.pin,nome:d.nome,av:d.av||'👨‍🏫'};
+        profs.push(novoPerfil);
+        sProfs(profs);
+        activateProf(novoPerfil);
+        logAct('Perfil importado via QR',d.nome);
+        toast('Perfil importado! A sincronizar os dados...','success');
+      },'📲','Importar Perfil de Professor','📲 Importar','bc');
     }else{
-      toast('Este QR é de um perfil que não existe neste dispositivo. O QR só funciona no mesmo telemóvel/navegador onde o perfil foi criado.','error');
+      toast('Este QR não corresponde a nenhum perfil neste dispositivo.','error');
     }
   }catch(e){
     toast('Código lido não é um QR válido do Sistema C.P.A.','error');
