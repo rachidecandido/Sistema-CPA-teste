@@ -187,7 +187,7 @@ async function carregarConversa(alunoId){
       return `<div style="text-align:${minha?'right':'left'};margin-bottom:7px"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span></div>`;
     }).join('');
     thread.scrollTop=thread.scrollHeight;
-  }catch(e){thread.innerHTML='<div class="empty">Erro ao carregar mensagens.</div>';console.error(e);}
+  }catch(e){thread.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
 }
 async function enviarMensagemProf(){
   const texto=document.getElementById('msgTexto').value.trim();

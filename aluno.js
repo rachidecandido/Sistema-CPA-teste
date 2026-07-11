@@ -24,16 +24,16 @@ async function fazerLoginAluno(){
   document.getElementById('errMsg').style.display='none';
   if(!mt||!pin){mostrarErroAl('Preencha a matrícula e o PIN.');return}
   try{
-    const snap=await fbDB.collection('alunos').where('mt','==',mt).where('tipo','==','bol').get();
+    const snap=await fbDB.collection('alunos').where('mt','==',mt).get();
     if(snap.empty){mostrarErroAl('Matrícula não encontrada.');return}
-    const doc=snap.docs.find(d=>d.data().alunoPin===pin);
+    const doc=snap.docs.find(d=>d.data().tipo==='bol'&&d.data().alunoPin===pin);
     if(!doc){mostrarErroAl('PIN incorrecto.');return}
     alunoAtual={id:doc.id,...doc.data()};
     sessionStorage.setItem('cpa_aluno_sessao',JSON.stringify(alunoAtual));
     mostrarPainelAluno();
   }catch(e){
     console.error(e);
-    mostrarErroAl('Erro de ligação. Verifique a internet e tente novamente.');
+    mostrarErroAl('Erro: '+(e.message||e.code||'falha desconhecida')+'. Verifique a internet e tente novamente.');
   }
 }
 

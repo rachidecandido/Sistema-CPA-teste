@@ -83,14 +83,15 @@ async function carregarNotificacoes(){
   const el=document.getElementById('notifList');
   el.innerHTML='<div class="empty">A carregar...</div>';
   try{
-    const snap=await fbDB.collection('notificacoes').where('encEmail','==',encEmailAtual).orderBy('data','desc').limit(20).get();
+    const snap=await fbDB.collection('notificacoes').where('encEmail','==',encEmailAtual).limit(50).get();
     if(snap.empty){el.innerHTML='<div class="empty">Sem notificações.</div>';return}
-    el.innerHTML=snap.docs.map(doc=>{
+    const docsOrdenados=snap.docs.sort((a,b)=>(b.data().data?.seconds||0)-(a.data().data?.seconds||0)).slice(0,20);
+    el.innerHTML=docsOrdenados.map(doc=>{
       const n=doc.data();
       const dt=n.data?.toDate?n.data.toDate().toLocaleDateString('pt-PT'):'';
       return `<div class="notif">${n.texto}<div style="color:var(--mu);font-size:.66rem;margin-top:4px">${dt}</div></div>`;
     }).join('');
-  }catch(e){el.innerHTML='<div class="empty">Erro ao carregar notificações.</div>';console.error(e);}
+  }catch(e){el.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
 }
 
 // ── ALUNOS VINCULADOS ──
@@ -131,7 +132,7 @@ async function carregarMateriaisEncarregado(turmas){
       else acao=`<span class="abrirTxt" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📝 Ler Texto</span><div style="display:none;font-size:.76rem;margin-top:6px;white-space:pre-wrap">${m.texto}</div>`;
       return `<div class="matItem"><div class="tt">${m.titulo}</div><div class="ds">${[m.turma,m.disciplina,m.professorNome].filter(Boolean).join(' · ')}</div>${acao}</div>`;
     }).join('');
-  }catch(e){el.innerHTML='<div class="empty">Erro ao carregar materiais.</div>';console.error(e);}
+  }catch(e){el.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
 }
 
 function abrirDetalheAluno(alunoJSONStr,docId){
@@ -177,15 +178,16 @@ async function carregarChatEnc(){
   const thread=document.getElementById('encThread');
   thread.innerHTML='<div class="empty">A carregar...</div>';
   try{
-    const snap=await fbDB.collection('mensagens').where('alunoId','==',chatAlunoId).orderBy('data','asc').limit(100).get();
+    const snap=await fbDB.collection('mensagens').where('alunoId','==',chatAlunoId).limit(100).get();
     if(snap.empty){thread.innerHTML='<div class="empty">Sem mensagens ainda. Envie a primeira!</div>';return}
-    thread.innerHTML=snap.docs.map(doc=>{
+    const docsOrdenados=snap.docs.sort((a,b)=>(a.data().data?.seconds||0)-(b.data().data?.seconds||0));
+    thread.innerHTML=docsOrdenados.map(doc=>{
       const m=doc.data();
       const minha=m.de==='encarregado';
       return `<div class="msgBubble" style="text-align:${minha?'right':'left'}"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span></div>`;
     }).join('');
     thread.scrollTop=thread.scrollHeight;
-  }catch(e){thread.innerHTML='<div class="empty">Erro ao carregar mensagens.</div>';console.error(e);}
+  }catch(e){thread.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
 }
 async function enviarMensagemEnc(){
   const texto=document.getElementById('encMsgTxt').value.trim();
