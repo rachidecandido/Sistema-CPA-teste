@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Portal do Encarregado — Sistema C.P.A</title>
+<meta name="theme-color" content="#00c9a7">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--ac:#00c9a7;--ac2:#0099ff;--dg:#ef4444;--wn:#f59e0b;--ok:#10b981;--bg:#0f1923;--cd:#1a2a3a;--c2:#162030;--tx:#e2e8f0;--mu:#64748b;--br:rgba(255,255,255,.08);--ip:rgba(255,255,255,.05)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+.wrap{max-width:480px;margin:0 auto;padding:20px 16px 60px}
+.hdr{text-align:center;margin-bottom:22px}
+.hdr .ic{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 10px}
+.hdr h1{font-size:1.3rem;font-weight:800}
+.hdr p{font-size:.76rem;color:var(--mu);margin-top:3px}
+.card{background:var(--cd);border:1px solid var(--br);border-radius:14px;padding:16px;margin-bottom:12px}
+.fl{font-size:.67rem;color:var(--mu);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.fi{width:100%;padding:10px 12px;background:var(--ip);border:1px solid var(--br);border-radius:8px;color:var(--tx);font-size:.85rem;outline:none;margin-bottom:10px}
+.fi:focus{border-color:var(--ac)}
+.btn{width:100%;border:none;padding:12px;border-radius:9px;cursor:pointer;font-weight:700;font-size:.8rem;letter-spacing:.3px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#0f1923;margin-bottom:8px}
+.btn.sec{background:var(--ip);color:var(--tx);border:1px solid var(--br)}
+.btn.dg{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.err{color:var(--dg);font-size:.76rem;margin-bottom:8px;display:none}
+.link{color:var(--ac2);text-align:center;font-size:.78rem;cursor:pointer;margin-top:4px}
+#appArea{display:none}
+.alunoCard{background:var(--c2);border:1px solid var(--br);border-radius:12px;padding:13px;margin-bottom:10px;cursor:pointer}
+.alunoCard .nm{font-weight:800;font-size:.92rem}
+.alunoCard .meta{font-size:.68rem;color:var(--mu);margin:3px 0 8px}
+.st{display:inline-flex;padding:3px 9px;border-radius:14px;font-size:.68rem;font-weight:700}
+.st.apv{background:rgba(16,185,129,.18);color:#34d399}
+.st.rep{background:rgba(239,68,68,.18);color:#f87171}
+.mg2{font-weight:800;color:var(--ac);font-size:1.1rem;float:right}
+.notif{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:10px;margin-bottom:8px;font-size:.78rem}
+.matItem{background:var(--c2);border-radius:10px;padding:12px;margin-bottom:9px}
+.matItem .tt{font-weight:700;font-size:.84rem}
+.matItem .ds{font-size:.72rem;color:var(--mu);margin:3px 0 7px}
+.matItem a,.matItem .abrirTxt{display:inline-block;background:var(--ac);color:#0f1923;font-size:.72rem;font-weight:700;padding:6px 12px;border-radius:8px;text-decoration:none;cursor:pointer}
+.empty{text-align:center;color:var(--mu);padding:24px 0;font-size:.84rem}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.topbar .who{font-size:.78rem;color:var(--mu)}
+.sair{background:none;border:none;color:var(--dg);font-size:.74rem;cursor:pointer;font-weight:700}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;display:none;align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.md{background:var(--cd);border-radius:16px 16px 0 0;padding:18px 15px;width:100%;max-width:480px;max-height:82vh;overflow-y:auto}
+.msgBubble{margin-bottom:8px}
+.toastw{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999}
+.toastm{padding:9px 16px;border-radius:9px;font-size:.78rem;font-weight:600;color:#fff;background:var(--ok)}
+.toastm.error{background:var(--dg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr"><div class="ic">👪</div><h1>Portal do Encarregado</h1><p>Sistema C.P.A · Acompanhe as notas do seu educando</p></div>
+
+  <!-- LOGIN / REGISTO -->
+  <div id="authArea">
+    <div class="card">
+      <div id="errMsg" class="err"></div>
+      <div class="fl">Email</div><input class="fi" id="authEmail" type="email" placeholder="seuemail@exemplo.com">
+      <div class="fl">Palavra-passe</div><input class="fi" id="authSenha" type="password" placeholder="••••••••">
+      <button class="btn" onclick="fazerLogin()">Entrar</button>
+      <button class="btn sec" onclick="fazerRegisto()">Criar Conta de Encarregado</button>
+      <div class="link" onclick="recuperarSenha()">Esqueci a minha palavra-passe</div>
+    </div>
+  </div>
+
+  <!-- ÁREA LOGADA -->
+  <div id="appArea">
+    <div class="topbar"><span class="who" id="quemEsta"></span><button class="sair" onclick="sairConta()">Sair</button></div>
+    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">⚠️ Notificações</div><div id="notifList"></div></div>
+    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">🎓 Meus Educandos</div><div id="alunosList"></div></div>
+    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📚 Materiais de Apoio</div><div id="matEncList"></div></div>
+  </div>
+</div>
+
+<div class="mo" id="moDetalhe"><div class="md" id="moDetalheBody"></div></div>
+<div class="mo" id="moChat"><div class="md" id="moChatBody"></div></div>
+<div class="toastw" id="toasts"></div>
+
+<script src="firebase-config.js"></script>
+<script src="encarregado.js"></script>
+</body>
+</html>

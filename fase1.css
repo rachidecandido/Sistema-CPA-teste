@@ -1,0 +1,27 @@
+/* ============================================================
+   FASE1.CSS — Layout Tablet/Desktop + Novos Componentes
+   Sistema C.P.A
+   ============================================================ */
+
+/* Modal de QR extra (usa a mesma classe .mo/.md do sistema) */
+#qrVideo{width:100%;border-radius:12px;background:#000}
+#qrCanvas{display:none}
+
+/* ── LAYOUT DE DUAS COLUNAS PARA TABLET/DESKTOP (largura >= 900px) ── */
+@media(min-width:900px){
+  html,body{overflow:auto}
+  #app{flex-direction:row;height:100vh}
+  .dr{position:sticky;right:auto;top:0;width:270px;height:100vh;transition:none}
+  .do{display:none!important}
+  header{position:sticky;top:0;z-index:10}
+  .content{max-width:900px;margin:0 auto;padding:18px 20px 30px}
+  .bottom-nav{display:none}
+  #app{display:flex!important}
+  .fr,.fr.t3,.fr.t4{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .card{padding:18px}
+  .sg{grid-template-columns:repeat(4,1fr)}
+  .bg{grid-template-columns:repeat(4,1fr)}
+}
+@media(min-width:1200px){
+  .content{max-width:1100px}
+}
