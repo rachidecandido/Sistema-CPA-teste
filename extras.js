@@ -115,6 +115,10 @@ function gerarMeuQR(){
 
 let qrStream=null;
 function abrirLeitorQR(){
+  if(typeof jsQR==='undefined'){
+    toast('A biblioteca de leitura de QR não carregou (ligação lenta ou instável). Recarregue a página e tente novamente.','error');
+    return;
+  }
   document.getElementById('moQRScan').classList.add('open');
   const video=document.getElementById('qrVideo');
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(stream=>{
@@ -131,6 +135,7 @@ function fecharLeitorQR(){
   if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null}
   closeModal('moQRScan');
 }
+let _ultimoQRLido=null;
 function tickQR(){
   const modal=document.getElementById('moQRScan');
   if(!modal||!modal.classList.contains('open'))return;
@@ -141,24 +146,63 @@ function tickQR(){
     const ctx=canvas.getContext('2d');
     ctx.drawImage(video,0,0,canvas.width,canvas.height);
     const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-    if(typeof jsQR!=='undefined'){
-      const code=jsQR(imgData.data,imgData.width,imgData.height);
-      if(code){
-        try{
-          const d=JSON.parse(code.data);
-          const profs=gProfs();
-          const p=profs.find(x=>x.id===d.id&&x.pin===d.pin);
-          if(p){
-            fecharLeitorQR();
-            activateProf(p);
-            toast('Entrada por QR bem-sucedida!','success');
-            return;
-          }
-        }catch(e){}
-      }
+    const code=jsQR(imgData.data,imgData.width,imgData.height);
+    if(code&&code.data!==_ultimoQRLido){
+      _ultimoQRLido=code.data;
+      fecharLeitorQR();
+      handleQRDetectado(code.data);
+      return;
     }
   }
   requestAnimationFrame(tickQR);
+}
+
+// Processa o texto lido de um QR (venha da câmara ou de uma imagem da galeria)
+function handleQRDetectado(qrTexto){
+  try{
+    const d=JSON.parse(qrTexto);
+    const profs=gProfs();
+    const p=profs.find(x=>x.id===d.id&&x.pin===d.pin);
+    if(p){
+      activateProf(p);
+      toast('Entrada por QR bem-sucedida!','success');
+    }else{
+      toast('Este QR é de um perfil que não existe neste dispositivo. O QR só funciona no mesmo telemóvel/navegador onde o perfil foi criado.','error');
+    }
+  }catch(e){
+    toast('Código lido não é um QR válido do Sistema C.P.A.','error');
+  }
+}
+
+// Carregar uma imagem da galeria em vez de usar a câmara
+function lerQRDaGaleria(evt){
+  const file=evt.target.files[0];
+  if(!file)return;
+  if(typeof jsQR==='undefined'){
+    toast('A biblioteca de leitura de QR não carregou (ligação lenta ou instável). Recarregue a página e tente novamente.','error');
+    return;
+  }
+  const r=new FileReader();
+  r.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      canvas.width=img.width;canvas.height=img.height;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0);
+      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=jsQR(imgData.data,imgData.width,imgData.height);
+      if(code){
+        fecharLeitorQR();
+        handleQRDetectado(code.data);
+      }else{
+        toast('Não foi possível encontrar um QR nesta imagem. Tente outra foto, mais nítida.','error');
+      }
+    };
+    img.onerror=()=>toast('Não foi possível abrir esta imagem.','error');
+    img.src=e.target.result;
+  };
+  r.readAsDataURL(file);
 }
 
 // Aplica o estado do Modo de Exame assim que o perfil é activado
