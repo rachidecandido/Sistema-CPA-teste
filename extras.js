@@ -115,21 +115,41 @@ function gerarMeuQR(){
 
 let qrStream=null;
 function abrirLeitorQR(){
-  if(typeof jsQR==='undefined'){
+  garantirJsQR(()=>{
+    document.getElementById('moQRScan').classList.add('open');
+    const video=document.getElementById('qrVideo');
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(stream=>{
+      qrStream=stream;
+      video.srcObject=stream;
+      video.play();
+      requestAnimationFrame(tickQR);
+    }).catch(()=>{
+      toast('Não foi possível aceder à câmara.','error');
+      closeModal('moQRScan');
+    });
+  });
+}
+
+// Garante que a biblioteca jsQR está disponível antes de usar a câmara/galeria.
+// Se o servidor principal (jsdelivr) falhar, tenta automaticamente um segundo
+// servidor (cdnjs) antes de desistir — cobre casos de rede instável.
+let _jsQRTentativaFeita=false;
+function garantirJsQR(callback){
+  if(typeof jsQR!=='undefined'){callback();return}
+  if(_jsQRTentativaFeita){
     toast('A biblioteca de leitura de QR não carregou (ligação lenta ou instável). Recarregue a página e tente novamente.','error');
     return;
   }
-  document.getElementById('moQRScan').classList.add('open');
-  const video=document.getElementById('qrVideo');
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(stream=>{
-    qrStream=stream;
-    video.srcObject=stream;
-    video.play();
-    requestAnimationFrame(tickQR);
-  }).catch(()=>{
-    toast('Não foi possível aceder à câmara.','error');
-    closeModal('moQRScan');
-  });
+  _jsQRTentativaFeita=true;
+  toast('A preparar leitor de QR...','info');
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+  s.onload=()=>{
+    if(typeof jsQR!=='undefined')callback();
+    else toast('Não foi possível carregar a biblioteca de QR. Verifique a internet.','error');
+  };
+  s.onerror=()=>toast('Não foi possível carregar a biblioteca de QR. Verifique a internet.','error');
+  document.head.appendChild(s);
 }
 function fecharLeitorQR(){
   if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null}
@@ -178,31 +198,29 @@ function handleQRDetectado(qrTexto){
 function lerQRDaGaleria(evt){
   const file=evt.target.files[0];
   if(!file)return;
-  if(typeof jsQR==='undefined'){
-    toast('A biblioteca de leitura de QR não carregou (ligação lenta ou instável). Recarregue a página e tente novamente.','error');
-    return;
-  }
-  const r=new FileReader();
-  r.onload=e=>{
-    const img=new Image();
-    img.onload=()=>{
-      const canvas=document.createElement('canvas');
-      canvas.width=img.width;canvas.height=img.height;
-      const ctx=canvas.getContext('2d');
-      ctx.drawImage(img,0,0);
-      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const code=jsQR(imgData.data,imgData.width,imgData.height);
-      if(code){
-        fecharLeitorQR();
-        handleQRDetectado(code.data);
-      }else{
-        toast('Não foi possível encontrar um QR nesta imagem. Tente outra foto, mais nítida.','error');
-      }
+  garantirJsQR(()=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        canvas.width=img.width;canvas.height=img.height;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0);
+        const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code=jsQR(imgData.data,imgData.width,imgData.height);
+        if(code){
+          fecharLeitorQR();
+          handleQRDetectado(code.data);
+        }else{
+          toast('Não foi possível encontrar um QR nesta imagem. Tente outra foto, mais nítida.','error');
+        }
+      };
+      img.onerror=()=>toast('Não foi possível abrir esta imagem.','error');
+      img.src=e.target.result;
     };
-    img.onerror=()=>toast('Não foi possível abrir esta imagem.','error');
-    img.src=e.target.result;
-  };
-  r.readAsDataURL(file);
+    r.readAsDataURL(file);
+  });
 }
 
 // Aplica o estado do Modo de Exame assim que o perfil é activado
