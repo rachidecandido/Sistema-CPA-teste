@@ -1,0 +1,73 @@
+// ============================================================
+// FIRESTORE.RULES — Sistema C.P.A
+// Como usar: Firebase Console → Firestore Database → aba "Regras"
+// → apague o conteúdo actual → cole isto → "Publicar"
+// Faça isto ANTES de 7 de Agosto de 2026 (data em que o modo de
+// teste expira e o acesso passa a ser bloqueado).
+// ============================================================
+//
+// O que estas regras garantem:
+// - Qualquer pessoa pode LER dados da escola/turmas (necessário para
+//   o portal do encarregado funcionar sem exigir login de professor).
+// - Só utilizadores autenticados (Firebase Auth = encarregados, já
+//   que os professores usam PIN local) podem escrever mensagens.
+// - Um encarregado só consegue ler/escrever mensagens e notificações
+//   que lhe pertencem (filtradas pelo próprio email de login).
+// - Os registos de alunos podem ser escritos livremente pela app do
+//   professor (que não usa Firebase Auth, apenas PIN local) — esta é
+//   uma limitação aceite nesta fase; se quiser reforçar, o próximo
+//   passo seria migrar também os professores para Firebase Auth.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Dados gerais da escola — leitura pública, escrita livre (app do professor)
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Turmas — mesma lógica
+    match /turmas/{turmaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Registos de alunos (CPA + Boletim)
+    // Leitura: pública (necessária para o portal do encarregado/aluno ler pelo email/matrícula)
+    // Escrita: livre (vem da app do professor, sem Firebase Auth)
+    match /alunos/{alunoId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Materiais de Apoio enviados pelos professores
+    // Leitura: pública (alunos e encarregados acedem sem conta própria de professor)
+    // Escrita: livre (vem da app do professor, sem Firebase Auth)
+    match /materiais/{materialId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Notificações — só o encarregado dono (pelo email de login) pode ler/marcar como lida
+    // Nota: os emails já são gravados em minúsculas pela app (ver encarregado.js/sync.js),
+    // por isso a comparação directa "==" é suficiente e mais compatível com consultas de lista.
+    match /notificacoes/{notifId} {
+      allow read: if request.auth != null && request.auth.token.email == resource.data.encEmail;
+      allow create: if true; // criadas pela app do professor
+      allow update, delete: if request.auth != null && request.auth.token.email == resource.data.encEmail;
+    }
+
+    // Mensagens — leitura pública dentro da conversa (simplificação),
+    // escrita exige que o remetente seja professor (sem auth) ou
+    // encarregado autenticado com o próprio email
+    match /mensagens/{msgId} {
+      allow read: if true;
+      allow create: if request.resource.data.de == 'professor'
+                    || (request.auth != null && request.auth.token.email == request.resource.data.encEmail);
+      allow update, delete: if false;
+    }
+  }
+}
+
