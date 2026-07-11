@@ -23,6 +23,7 @@ async function fazerLoginAluno(){
   const pin=document.getElementById('authPin').value.trim();
   document.getElementById('errMsg').style.display='none';
   if(!mt||!pin){mostrarErroAl('Preencha a matrícula e o PIN.');return}
+  if(!fbDB){mostrarErroAl('Não foi possível ligar ao servidor ('+(window.firebaseInitError||'Firebase não iniciou')+'). Verifique a internet e recarregue a página.');return}
   try{
     const snap=await fbDB.collection('alunos').where('mt','==',mt).get();
     if(snap.empty){mostrarErroAl('Matrícula não encontrada.');return}

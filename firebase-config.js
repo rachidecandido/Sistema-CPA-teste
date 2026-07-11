@@ -14,12 +14,22 @@ const firebaseConfig = {
 
 // Usa a versão "compat" do SDK (carregada via CDN no <head>), por isso
 // esta inicialização funciona sem necessidade de bundler (npm/webpack).
-firebase.initializeApp(firebaseConfig);
-const fbAuth = firebase.auth();
-const fbDB = firebase.firestore();
-
-// Activa persistência offline: o app continua a funcionar sem internet
-// e sincroniza automaticamente assim que a ligação voltar.
-fbDB.enablePersistence({synchronizeTabs:true}).catch(err=>{
-  console.warn('Persistência offline não disponível:',err.code);
-});
+// Usa a versão "compat" do SDK (carregada via CDN no <head>), por isso
+// esta inicialização funciona sem necessidade de bundler (npm/webpack).
+let fbAuth=null,fbDB=null;
+try{
+  if(typeof firebase==='undefined'){
+    throw new Error('Bibliotecas do Firebase não carregaram (CDN bloqueado ou sem internet).');
+  }
+  firebase.initializeApp(firebaseConfig);
+  fbAuth=firebase.auth ? firebase.auth() : null;
+  fbDB=firebase.firestore();
+  // Activa persistência offline: o app continua a funcionar sem internet
+  // e sincroniza automaticamente assim que a ligação voltar.
+  fbDB.enablePersistence({synchronizeTabs:true}).catch(err=>{
+    console.warn('Persistência offline não disponível:',err.code);
+  });
+}catch(err){
+  console.error('Erro ao iniciar o Firebase:',err);
+  window.firebaseInitError=err.message||String(err);
+}

@@ -21,6 +21,7 @@ function mostrarErro(msg){
 
 // ── AUTENTICAÇÃO ──
 function fazerLogin(){
+  if(!fbAuth){mostrarErro('Não foi possível ligar ao servidor ('+(window.firebaseInitError||'Firebase não iniciou')+'). Verifique a internet e recarregue a página.');return}
   const email=document.getElementById('authEmail').value.trim();
   const senha=document.getElementById('authSenha').value;
   if(!email||!senha){mostrarErro('Preencha email e palavra-passe.');return}
@@ -30,6 +31,7 @@ function fazerLogin(){
   });
 }
 function fazerRegisto(){
+  if(!fbAuth){mostrarErro('Não foi possível ligar ao servidor ('+(window.firebaseInitError||'Firebase não iniciou')+'). Verifique a internet e recarregue a página.');return}
   const email=document.getElementById('authEmail').value.trim();
   const senha=document.getElementById('authSenha').value;
   if(!email||!senha){mostrarErro('Preencha email e palavra-passe.');return}
