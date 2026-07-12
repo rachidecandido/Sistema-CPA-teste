@@ -130,9 +130,14 @@ async function carregarMateriaisEncarregado(turmas){
     el.innerHTML=resultados.map(m=>{
       let acao='';
       if(m.tipo==='link')acao=`<a href="${m.link}" target="_blank">🔗 Abrir Link</a>`;
-      else if(m.tipo==='arquivo')acao=`<a href="${m.conteudoBase64}" download="${m.nomeArquivo}">⬇️ Descarregar</a>`;
+      else if(m.tipo==='arquivo'){
+        acao=m.totalChunks
+          ?`<span class="abrirTxt" onclick="baixarMaterialChunked('${doc.id}','${m.nomeArquivo.replace(/'/g,"\\'")}',this)">⬇️ Descarregar</span>`
+          :`<a href="${m.conteudoBase64}" download="${m.nomeArquivo}">⬇️ Descarregar</a>`;
+      }
       else acao=`<span class="abrirTxt" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📝 Ler Texto</span><div style="display:none;font-size:.76rem;margin-top:6px;white-space:pre-wrap">${m.texto}</div>`;
-      return `<div class="matItem"><div class="tt">${m.titulo}</div><div class="ds">${[m.turma,m.disciplina,m.professorNome].filter(Boolean).join(' · ')}</div>${acao}</div>`;
+      const dataEnv=m.data?.toDate?m.data.toDate().toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="matItem"><div class="tt">${m.titulo}</div><div class="ds">${[m.turma,m.disciplina,m.professorNome].filter(Boolean).join(' · ')}${dataEnv?' · 📅 '+dataEnv:''}</div>${acao}</div>`;
     }).join('');
   }catch(e){el.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
 }
@@ -186,7 +191,8 @@ async function carregarChatEnc(){
     thread.innerHTML=docsOrdenados.map(doc=>{
       const m=doc.data();
       const minha=m.de==='encarregado';
-      return `<div class="msgBubble" style="text-align:${minha?'right':'left'}"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span></div>`;
+      const hora=m.data?.toDate?m.data.toDate().toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="msgBubble" style="text-align:${minha?'right':'left'}"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span><div style="font-size:.62rem;color:var(--mu);margin-top:2px">${hora}</div></div>`;
     }).join('');
     thread.scrollTop=thread.scrollHeight;
   }catch(e){thread.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
@@ -206,4 +212,27 @@ async function enviarMensagemEnc(){
     document.getElementById('encMsgTxt').value='';
     carregarChatEnc();
   }catch(e){toastEnc('Erro ao enviar mensagem.','error');console.error(e);}
+}
+
+// Reconstrói um ficheiro grande a partir dos seus pedaços ("chunks") e inicia o download
+async function baixarMaterialChunked(materialId,nomeArquivo,elClicado){
+  const textoOriginal=elClicado.textContent;
+  elClicado.textContent='⏳ A preparar...';
+  try{
+    const snap=await fbDB.collection('materiais').doc(materialId).collection('chunks').get();
+    if(snap.empty){toastEnc('Não foi possível encontrar as partes deste ficheiro.','error');elClicado.textContent=textoOriginal;return}
+    const chunksOrdenados=snap.docs.sort((a,b)=>parseInt(a.id)-parseInt(b.id));
+    const dataUrlCompleta=chunksOrdenados.map(d=>d.data().data).join('');
+    const a=document.createElement('a');
+    a.href=dataUrlCompleta;
+    a.download=nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    elClicado.textContent=textoOriginal;
+  }catch(e){
+    console.error(e);
+    toastEnc('Erro ao descarregar o ficheiro.','error');
+    elClicado.textContent=textoOriginal;
+  }
 }

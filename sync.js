@@ -184,7 +184,8 @@ async function carregarConversa(alunoId){
     thread.innerHTML=docsOrdenados.map(doc=>{
       const m=doc.data();
       const minha=m.de==='professor';
-      return `<div style="text-align:${minha?'right':'left'};margin-bottom:7px"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span></div>`;
+      const hora=m.data?.toDate?m.data.toDate().toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div style="text-align:${minha?'right':'left'};margin-bottom:9px"><span style="display:inline-block;background:${minha?'var(--ac)':'var(--c2)'};color:${minha?'#0f1923':'var(--tx)'};padding:7px 11px;border-radius:12px;font-size:.78rem;max-width:80%">${m.texto}</span><div style="font-size:.62rem;color:var(--mu);margin-top:2px">${hora}</div></div>`;
     }).join('');
     thread.scrollTop=thread.scrollHeight;
   }catch(e){thread.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}

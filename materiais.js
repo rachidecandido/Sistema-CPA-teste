@@ -1,16 +1,20 @@
 /* ============================================================
    MÓDULO: MATERIAIS.JS — Materiais de Apoio (Professor)
-   Fase 4 — Sistema C.P.A
+   Fase 4/6 — Sistema C.P.A
    Depende de: index.html (PA, toast, logAct), escola.js (gTurmas),
    sync.js (fbDB via firebase-config.js)
    ------------------------------------------------------------
    Os ficheiros são guardados directamente no Firestore (sem usar
-   Firebase Storage, que agora exige o plano Blaze). Por isso há um
-   limite de ~900KB por ficheiro — suficiente para a maioria dos PDFs
-   de exercícios e imagens, mas não para vídeos ou ficheiros grandes.
+   Firebase Storage, que exige o plano Blaze). Cada documento do
+   Firestore tem um limite RÍGIDO de 1MB — por isso, para ficheiros
+   maiores que ~900KB, dividimos o conteúdo em vários pedaços
+   ("chunks"), guardados como sub-documentos, e juntamo-los de novo
+   automaticamente na hora de descarregar. Isto permite ficheiros
+   até 5MB sem precisar de Storage nem cartão de crédito.
    ============================================================ */
 
-const LIMITE_MATERIAL_BYTES=900*1024;
+const LIMITE_MATERIAL_BYTES=5*1024*1024; // 5MB
+const TAMANHO_CHUNK=700*1024; // ~700 mil caracteres por pedaço (seguro para o limite de 1MB do Firestore)
 
 function renderMateriais(){
   const el=document.getElementById('sec-mat');
@@ -30,7 +34,7 @@ function renderMateriais(){
     <div class="fl">Descrição</div><input class="fi" id="matDesc" type="text" placeholder="Opcional..." style="margin-bottom:9px">
     <div class="fl">Tipo de Material</div>
     <select class="fi" id="matTipo" onchange="mudarTipoMaterial()" style="margin-bottom:9px">
-      <option value="arquivo">📎 Ficheiro (PDF, imagem — até 900KB)</option>
+      <option value="arquivo">📎 Ficheiro (PDF, imagem — até 5MB)</option>
       <option value="link">🔗 Link (ex: vídeo do YouTube, Google Drive)</option>
       <option value="texto">📝 Texto (aviso ou instrução simples)</option>
     </select>
@@ -73,13 +77,44 @@ function enviarMaterial(){
   }else{
     const file=document.getElementById('matArquivo').files[0];
     if(!file){toast('Seleccione um ficheiro!','error');return}
-    if(file.size>LIMITE_MATERIAL_BYTES){toast('Ficheiro muito grande! Máximo 900KB. Tente comprimir a imagem/PDF.','error');return}
+    if(file.size>LIMITE_MATERIAL_BYTES){toast('Ficheiro muito grande! Máximo 5MB. Tente comprimir a imagem/PDF, ou use "Link" para ficheiros maiores (ex: Google Drive).','error');return}
     const r=new FileReader();
     r.onload=e=>{
-      salvarMaterialFirestore({...base,conteudoBase64:e.target.result,nomeArquivo:file.name,mimeType:file.type});
+      enviarMaterialComChunks({...base,nomeArquivo:file.name,mimeType:file.type},e.target.result);
     };
     r.readAsDataURL(file);
   }
+}
+
+// Envia um ficheiro grande dividido em vários documentos ("chunks"), já que
+// o Firestore não aceita documentos com mais de 1MB.
+async function enviarMaterialComChunks(materialSemConteudo,dataUrlCompleta){
+  try{
+    const chunks=[];
+    for(let i=0;i<dataUrlCompleta.length;i+=TAMANHO_CHUNK){
+      chunks.push(dataUrlCompleta.slice(i,i+TAMANHO_CHUNK));
+    }
+    toast('A enviar ficheiro... ('+chunks.length+' partes)','info');
+    const docRef=await fbDB.collection('materiais').add({...materialSemConteudo,totalChunks:chunks.length});
+    for(let i=0;i<chunks.length;i++){
+      await docRef.collection('chunks').doc(String(i)).set({data:chunks[i]});
+    }
+    toast('Material enviado com sucesso!','success');
+    logAct('Material de apoio enviado',materialSemConteudo.titulo+' — '+materialSemConteudo.turma+' ('+chunks.length+' partes)');
+    limparFormMaterial();
+    carregarMateriaisProfessor();
+  }catch(e){
+    console.error(e);
+    toast('Erro ao enviar material. Verifique a ligação à internet.','error');
+  }
+}
+
+function limparFormMaterial(){
+  document.getElementById('matTitulo').value='';
+  document.getElementById('matDesc').value='';
+  if(document.getElementById('matLink'))document.getElementById('matLink').value='';
+  if(document.getElementById('matTexto'))document.getElementById('matTexto').value='';
+  if(document.getElementById('matArquivo'))document.getElementById('matArquivo').value='';
 }
 
 async function salvarMaterialFirestore(material){
@@ -87,11 +122,7 @@ async function salvarMaterialFirestore(material){
     await fbDB.collection('materiais').add(material);
     toast('Material enviado com sucesso!','success');
     logAct('Material de apoio enviado',material.titulo+' — '+material.turma);
-    document.getElementById('matTitulo').value='';
-    document.getElementById('matDesc').value='';
-    if(document.getElementById('matLink'))document.getElementById('matLink').value='';
-    if(document.getElementById('matTexto'))document.getElementById('matTexto').value='';
-    if(document.getElementById('matArquivo'))document.getElementById('matArquivo').value='';
+    limparFormMaterial();
     carregarMateriaisProfessor();
   }catch(e){
     console.error(e);
@@ -110,7 +141,8 @@ async function carregarMateriaisProfessor(){
     const icones={arquivo:'📎',link:'🔗',texto:'📝'};
     el.innerHTML=docs.map(doc=>{
       const m=doc.data();
-      return `<div class="hi"><div style="font-size:1.2rem;width:28px;text-align:center">${icones[m.tipo]||'📄'}</div><div style="flex:1;min-width:0"><div class="hn">${m.titulo}</div><div class="hm">${[m.turma,m.disciplina].filter(Boolean).join(' · ')}</div></div><div class="ha"><button class="bsm sx" onclick="removerMaterial('${doc.id}')">✕</button></div></div>`;
+      const dataEnv=m.data?.toDate?m.data.toDate().toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="hi"><div style="font-size:1.2rem;width:28px;text-align:center">${icones[m.tipo]||'📄'}</div><div style="flex:1;min-width:0"><div class="hn">${m.titulo}</div><div class="hm">${[m.turma,m.disciplina].filter(Boolean).join(' · ')}${dataEnv?' · 📅 '+dataEnv:''}</div></div><div class="ha"><button class="bsm sx" onclick="removerMaterial('${doc.id}')">✕</button></div></div>`;
     }).join('');
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar materiais.</div>';console.error(e);}
 }
@@ -118,6 +150,10 @@ async function carregarMateriaisProfessor(){
 function removerMaterial(id){
   cfm('Este material deixará de estar visível para alunos e encarregados.',async()=>{
     try{
+      const chunksSnap=await fbDB.collection('materiais').doc(id).collection('chunks').get();
+      const batch=fbDB.batch();
+      chunksSnap.forEach(doc=>batch.delete(doc.ref));
+      if(!chunksSnap.empty)await batch.commit();
       await fbDB.collection('materiais').doc(id).delete();
       toast('Material removido.','info');
       carregarMateriaisProfessor();

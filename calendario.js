@@ -41,6 +41,31 @@ function criarEventoCal(){
   logAct('Evento adicionado ao calendário',titulo+' — '+data);
   toast('Evento adicionado!','success');
   renderListaCal();
+  // Reuniões associadas a uma turma notificam automaticamente os encarregados vinculados
+  if(tipo==='reuniao'&&turma&&typeof fbDB!=='undefined'&&fbDB){
+    notificarEncarregadosReuniao(titulo,data,turma,desc);
+  }
+}
+
+async function notificarEncarregadosReuniao(titulo,data,turma,desc){
+  try{
+    const dataFmt=new Date(data+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+    const alunosDaTurma=(typeof dBol!=='undefined'?dBol:[]).filter(b=>b.tr===turma&&b.encEmail);
+    if(!alunosDaTurma.length)return;
+    const emailsJaAvisados=new Set();
+    for(const a of alunosDaTurma){
+      if(emailsJaAvisados.has(a.encEmail))continue;
+      emailsJaAvisados.add(a.encEmail);
+      await fbDB.collection('notificacoes').add({
+        encEmail:a.encEmail,
+        alunoNome:a.nm,
+        texto:`📅 Reunião marcada: "${titulo}" no dia ${dataFmt}${desc?' — '+desc:''}`,
+        lida:false,
+        data:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    if(emailsJaAvisados.size)toast(emailsJaAvisados.size+' encarregado(s) notificado(s) da reunião.','success');
+  }catch(e){console.error(e);}
 }
 
 function renderListaCal(){

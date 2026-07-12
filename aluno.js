@@ -85,9 +85,14 @@ async function carregarMateriaisAluno(){
       const m=doc.data();
       let acao='';
       if(m.tipo==='link')acao=`<a href="${m.link}" target="_blank">🔗 Abrir Link</a>`;
-      else if(m.tipo==='arquivo')acao=`<a href="${m.conteudoBase64}" download="${m.nomeArquivo}">⬇️ Descarregar</a>`;
+      else if(m.tipo==='arquivo'){
+        acao=m.totalChunks
+          ?`<span class="abrirTxt" onclick="baixarMaterialChunked('${doc.id}','${m.nomeArquivo.replace(/'/g,"\\'")}',this)">⬇️ Descarregar</span>`
+          :`<a href="${m.conteudoBase64}" download="${m.nomeArquivo}">⬇️ Descarregar</a>`;
+      }
       else acao=`<span class="abrirTxt" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📝 Ler Texto</span><div style="display:none;font-size:.76rem;margin-top:6px;white-space:pre-wrap">${m.texto}</div>`;
-      return `<div class="matItem"><div class="tt">${m.titulo}</div><div class="ds">${[m.disciplina,m.professorNome].filter(Boolean).join(' · ')}${m.descricao?' — '+m.descricao:''}</div>${acao}</div>`;
+      const dataEnv=m.data?.toDate?m.data.toDate().toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="matItem"><div class="tt">${m.titulo}</div><div class="ds">${[m.disciplina,m.professorNome].filter(Boolean).join(' · ')}${dataEnv?' · 📅 '+dataEnv:''}${m.descricao?' — '+m.descricao:''}</div>${acao}</div>`;
     }).join('');
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar materiais.</div>';console.error(e);}
 }
@@ -99,3 +104,26 @@ async function carregarMateriaisAluno(){
     try{alunoAtual=JSON.parse(salvo);mostrarPainelAluno();}catch(e){}
   }
 })();
+
+// Reconstrói um ficheiro grande a partir dos seus pedaços ("chunks") e inicia o download
+async function baixarMaterialChunked(materialId,nomeArquivo,elClicado){
+  const textoOriginal=elClicado.textContent;
+  elClicado.textContent='⏳ A preparar...';
+  try{
+    const snap=await fbDB.collection('materiais').doc(materialId).collection('chunks').get();
+    if(snap.empty){toastAl('Não foi possível encontrar as partes deste ficheiro.','error');elClicado.textContent=textoOriginal;return}
+    const chunksOrdenados=snap.docs.sort((a,b)=>parseInt(a.id)-parseInt(b.id));
+    const dataUrlCompleta=chunksOrdenados.map(d=>d.data().data).join('');
+    const a=document.createElement('a');
+    a.href=dataUrlCompleta;
+    a.download=nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    elClicado.textContent=textoOriginal;
+  }catch(e){
+    console.error(e);
+    toastAl('Erro ao descarregar o ficheiro.','error');
+    elClicado.textContent=textoOriginal;
+  }
+}
