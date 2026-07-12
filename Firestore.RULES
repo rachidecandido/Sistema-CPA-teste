@@ -48,6 +48,12 @@ service cloud.firestore {
     match /materiais/{materialId} {
       allow read: if true;
       allow write: if true;
+
+      // Pedaços ("chunks") de ficheiros grandes divididos (até 5MB no total)
+      match /chunks/{chunkId} {
+        allow read: if true;
+        allow write: if true;
+      }
     }
 
     // Notificações — só o encarregado dono (pelo email de login) pode ler/marcar como lida
@@ -70,4 +76,3 @@ service cloud.firestore {
     }
   }
 }
-
