@@ -89,23 +89,34 @@ function enviarMaterial(){
 // Envia um ficheiro grande dividido em vários documentos ("chunks"), já que
 // o Firestore não aceita documentos com mais de 1MB.
 async function enviarMaterialComChunks(materialSemConteudo,dataUrlCompleta){
+  const docRef=fbDB.collection('materiais').doc(); // gera o ID sem publicar ainda
   try{
     const chunks=[];
     for(let i=0;i<dataUrlCompleta.length;i+=TAMANHO_CHUNK){
       chunks.push(dataUrlCompleta.slice(i,i+TAMANHO_CHUNK));
     }
     toast('A enviar ficheiro... ('+chunks.length+' partes)','info');
-    const docRef=await fbDB.collection('materiais').add({...materialSemConteudo,totalChunks:chunks.length});
+    // Escreve todos os pedaços primeiro; só depois de todos terem sucesso é
+    // que o material fica visível — assim nunca aparece um material "partido"
+    // se a internet cair a meio do envio.
     for(let i=0;i<chunks.length;i++){
       await docRef.collection('chunks').doc(String(i)).set({data:chunks[i]});
     }
+    await docRef.set({...materialSemConteudo,totalChunks:chunks.length});
     toast('Material enviado com sucesso!','success');
     logAct('Material de apoio enviado',materialSemConteudo.titulo+' — '+materialSemConteudo.turma+' ('+chunks.length+' partes)');
     limparFormMaterial();
     carregarMateriaisProfessor();
   }catch(e){
     console.error(e);
-    toast('Erro ao enviar material. Verifique a ligação à internet.','error');
+    toast('Erro ao enviar material. Verifique a ligação à internet e tente novamente.','error');
+    // Limpa quaisquer pedaços já escritos, para não deixar lixo incompleto
+    try{
+      const chunksSnap=await docRef.collection('chunks').get();
+      const batch=fbDB.batch();
+      chunksSnap.forEach(d=>batch.delete(d.ref));
+      if(!chunksSnap.empty)await batch.commit();
+    }catch(e2){console.error('Falha ao limpar pedaços incompletos:',e2);}
   }
 }
 

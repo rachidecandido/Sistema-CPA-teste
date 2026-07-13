@@ -7,25 +7,44 @@
 function handleFotoPerfil(evt){
   const file=evt.target.files[0];
   if(!file)return;
-  if(file.size>1500000){toast('Imagem muito grande! Use até 1.5MB.','error');return}
+  if(file.size>8000000){toast('Imagem muito grande! Escolha uma foto até 8MB.','error');return}
   const r=new FileReader();
   r.onload=e=>{
-    const foto=e.target.result;
-    if(isAdm){
-      const adm=gAdm();
-      adm.foto=foto;
-      localStorage.setItem('cpa_adm',JSON.stringify(adm));
-    }else if(PA){
-      const profs=gProfs();
-      const idx=profs.findIndex(p=>p.id===PA.id);
-      if(idx>=0){profs[idx].foto=foto;sProfs(profs);PA.foto=foto;}
-    }else{toast('Entre num perfil primeiro!','error');return}
-    aplicarAvatarActual();
-    renderFotoPerfilPrev();
-    logAct('Foto de perfil actualizada');
-    toast('Foto de perfil actualizada!','success');
+    const img=new Image();
+    img.onload=()=>{
+      // Recorta ao centro (quadrado) e reduz para 240x240 — a foto de perfil
+      // nunca precisa de mais resolução do que isso, e assim o ficheiro final
+      // fica muito mais leve (poucos KB, em vez de vários MB da câmara).
+      const TAM=240;
+      const lado=Math.min(img.width,img.height);
+      const offX=(img.width-lado)/2,offY=(img.height-lado)/2;
+      const canvas=document.createElement('canvas');
+      canvas.width=TAM;canvas.height=TAM;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,offX,offY,lado,lado,0,0,TAM,TAM);
+      const foto=canvas.toDataURL('image/jpeg',0.75);
+      guardarFotoPerfil(foto);
+    };
+    img.onerror=()=>toast('Não foi possível processar esta imagem.','error');
+    img.src=e.target.result;
   };
   r.readAsDataURL(file);
+}
+
+function guardarFotoPerfil(foto){
+  if(isAdm){
+    const adm=gAdm();
+    adm.foto=foto;
+    localStorage.setItem('cpa_adm',JSON.stringify(adm));
+  }else if(PA){
+    const profs=gProfs();
+    const idx=profs.findIndex(p=>p.id===PA.id);
+    if(idx>=0){profs[idx].foto=foto;sProfs(profs);PA.foto=foto;}
+  }else{toast('Entre num perfil primeiro!','error');return}
+  aplicarAvatarActual();
+  renderFotoPerfilPrev();
+  logAct('Foto de perfil actualizada');
+  toast('Foto de perfil actualizada!','success');
 }
 
 function renderFotoPerfilPrev(){

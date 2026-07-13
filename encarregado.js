@@ -123,7 +123,7 @@ async function carregarMateriaisEncarregado(turmas){
     const resultados=[];
     for(const t of turmas){
       const snap=await fbDB.collection('materiais').where('turma','==',t).get();
-      snap.forEach(doc=>resultados.push(doc.data()));
+      snap.forEach(doc=>resultados.push({...doc.data(),_id:doc.id}));
     }
     if(!resultados.length){el.innerHTML='<div class="empty">Nenhum material disponível ainda.</div>';return}
     resultados.sort((a,b)=>(b.data?.seconds||0)-(a.data?.seconds||0));
@@ -132,7 +132,7 @@ async function carregarMateriaisEncarregado(turmas){
       if(m.tipo==='link')acao=`<a href="${m.link}" target="_blank">🔗 Abrir Link</a>`;
       else if(m.tipo==='arquivo'){
         acao=m.totalChunks
-          ?`<span class="abrirTxt" onclick="baixarMaterialChunked('${doc.id}','${m.nomeArquivo.replace(/'/g,"\\'")}',this)">⬇️ Descarregar</span>`
+          ?`<span class="abrirTxt" onclick="baixarMaterialChunked('${m._id}','${m.nomeArquivo.replace(/'/g,"\\'")}',this)">⬇️ Descarregar</span>`
           :`<a href="${m.conteudoBase64}" download="${m.nomeArquivo}">⬇️ Descarregar</a>`;
       }
       else acao=`<span class="abrirTxt" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📝 Ler Texto</span><div style="display:none;font-size:.76rem;margin-top:6px;white-space:pre-wrap">${m.texto}</div>`;
