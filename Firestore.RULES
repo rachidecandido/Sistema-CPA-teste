@@ -34,6 +34,18 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Calendário Escolar — sincronizado entre dispositivos dos professores
+    match /calendario/{eventoId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Banco de Perguntas/Testes — sincronizado entre dispositivos dos professores
+    match /perguntas/{perguntaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Registos de alunos (CPA + Boletim)
     // Leitura: pública (necessária para o portal do encarregado/aluno ler pelo email/matrícula)
     // Escrita: livre (vem da app do professor, sem Firebase Auth)
