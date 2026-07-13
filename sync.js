@@ -110,6 +110,99 @@ if(_origSalvarEscola){
   };
 }
 
+// ── TURMAS (sincronizadas entre dispositivos) ──
+async function syncTurmasFirebase(){
+  try{
+    const turmas=gTurmas();
+    if(!turmas.length)return;
+    const batch=fbDB.batch();
+    turmas.forEach(t=>batch.set(fbDB.collection('turmas').doc(String(t.id)),t,{merge:true}));
+    await batch.commit();
+  }catch(e){console.error(e);}
+}
+async function pullTurmasFirebase(){
+  try{
+    const snap=await fbDB.collection('turmas').get();
+    if(snap.empty)return;
+    const locais=gTurmas();
+    snap.forEach(doc=>{
+      const remota=doc.data();
+      const idx=locais.findIndex(t=>String(t.id)===doc.id);
+      if(idx>=0)locais[idx]=remota;else locais.push(remota);
+    });
+    _origSTurmas(locais);
+    if(typeof renderTurmas==='function')renderTurmas();
+  }catch(e){console.error(e);}
+}
+const _origSTurmas=typeof sTurmas==='function'?sTurmas:null;
+if(_origSTurmas){
+  sTurmas=function(t){_origSTurmas(t);syncTurmasFirebase();};
+}
+
+// ── CALENDÁRIO ESCOLAR (sincronizado entre dispositivos) ──
+async function syncCalendarioFirebase(){
+  try{
+    const eventos=gCalEventos();
+    if(!eventos.length)return;
+    const batch=fbDB.batch();
+    eventos.forEach(ev=>batch.set(fbDB.collection('calendario').doc(String(ev.id)),ev,{merge:true}));
+    await batch.commit();
+  }catch(e){console.error(e);}
+}
+async function pullCalendarioFirebase(){
+  try{
+    const snap=await fbDB.collection('calendario').get();
+    if(snap.empty)return;
+    const locais=gCalEventos();
+    snap.forEach(doc=>{
+      const remoto=doc.data();
+      const idx=locais.findIndex(ev=>String(ev.id)===doc.id);
+      if(idx>=0)locais[idx]=remoto;else locais.push(remoto);
+    });
+    _origSCalEventos(locais);
+    if(typeof renderListaCal==='function')renderListaCal();
+  }catch(e){console.error(e);}
+}
+const _origSCalEventos=typeof sCalEventos==='function'?sCalEventos:null;
+if(_origSCalEventos){
+  sCalEventos=function(e){_origSCalEventos(e);syncCalendarioFirebase();};
+}
+
+// ── BANCO DE PERGUNTAS/TESTES (sincronizado entre dispositivos) ──
+async function syncPerguntasFirebase(){
+  try{
+    const perguntas=gPerguntas();
+    if(!perguntas.length)return;
+    const batch=fbDB.batch();
+    perguntas.forEach(p=>batch.set(fbDB.collection('perguntas').doc(String(p.id)),p,{merge:true}));
+    await batch.commit();
+  }catch(e){console.error(e);}
+}
+async function pullPerguntasFirebase(){
+  try{
+    const snap=await fbDB.collection('perguntas').get();
+    if(snap.empty)return;
+    const locais=gPerguntas();
+    snap.forEach(doc=>{
+      const remota=doc.data();
+      const idx=locais.findIndex(p=>String(p.id)===doc.id);
+      if(idx>=0)locais[idx]=remota;else locais.push(remota);
+    });
+    _origSPerguntas(locais);
+    if(typeof renderBancoPerguntas==='function')renderBancoPerguntas();
+  }catch(e){console.error(e);}
+}
+const _origSPerguntas=typeof sPerguntas==='function'?sPerguntas:null;
+if(_origSPerguntas){
+  sPerguntas=function(p){_origSPerguntas(p);syncPerguntasFirebase();};
+}
+
+// Puxa Turmas, Calendário e Perguntas assim que o professor ou admin entra
+const _origActivateProf5=activateProf;
+activateProf=function(prof){_origActivateProf5(prof);pullTurmasFirebase();pullCalendarioFirebase();pullPerguntasFirebase();};
+const _origActivateAdm4=activateAdm;
+activateAdm=function(){_origActivateAdm4();pullTurmasFirebase();pullCalendarioFirebase();pullPerguntasFirebase();};
+
 // ── VINCULAR ENCARREGADO DE EDUCAÇÃO A UM ALUNO ──
 // Chamado a partir do Boletim: guarda o email do encarregado no registo do aluno
 // para que ele possa vê-lo no Portal do Encarregado.
