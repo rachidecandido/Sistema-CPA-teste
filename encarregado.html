@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Portal do Encarregado — Sistema C.P.A</title>
 <meta name="theme-color" content="#00c9a7">
+<link rel="manifest" href="manifest-encarregado.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -70,7 +72,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 
   <!-- ÁREA LOGADA -->
   <div id="appArea">
-    <div class="topbar"><span class="who" id="quemEsta"></span><button class="sair" onclick="sairConta()">Sair</button></div>
+    <div class="topbar"><span class="who" id="quemEsta"></span><div><a href="portal.html?trocar=1" style="color:var(--mu);font-size:.7rem;text-decoration:none;margin-right:12px">🔄 Trocar</a><button class="sair" onclick="sairConta()">Sair</button></div></div>
     <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">⚠️ Notificações</div><div id="notifList"></div></div>
     <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">🎓 Meus Educandos</div><div id="alunosList"></div></div>
     <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📚 Materiais de Apoio</div><div id="matEncList"></div></div>

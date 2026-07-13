@@ -1,0 +1,25 @@
+{
+  "name": "Portal do Encarregado — Sistema C.P.A",
+  "short_name": "Portal Encarreg.",
+  "description": "Acompanhe as notas e materiais de apoio do seu educando.",
+  "start_url": "./encarregado.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1923",
+  "theme_color": "#00c9a7",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

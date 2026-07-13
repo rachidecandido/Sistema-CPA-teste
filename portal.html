@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sistema C.P.A</title>
+<meta name="theme-color" content="#00c9a7">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{--ac:#00c9a7;--ac2:#0099ff;--bg:#0f1923;--cd:#1a2a3a;--tx:#e2e8f0;--mu:#64748b;--br:rgba(255,255,255,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.wrap{max-width:420px;width:100%;padding:24px 18px;text-align:center}
+.ic{width:74px;height:74px;border-radius:18px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 14px}
+h1{font-size:1.35rem;font-weight:800;margin-bottom:5px}
+p{font-size:.8rem;color:var(--mu);margin-bottom:26px}
+.op{display:block;width:100%;background:var(--cd);border:1px solid var(--br);border-radius:14px;padding:18px;margin-bottom:12px;text-align:left;display:flex;align-items:center;gap:14px;cursor:pointer;color:var(--tx);text-decoration:none}
+.op:active{background:#1f3040}
+.op .em{font-size:1.7rem}
+.op .tt{font-weight:700;font-size:.92rem}
+.op .ds{font-size:.72rem;color:var(--mu);margin-top:2px}
+#carregando{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ic">🎓</div>
+  <h1>Sistema C.P.A</h1>
+  <p>Classificação Pessoal do Aluno</p>
+
+  <div id="escolha">
+    <div class="op" onclick="entrarComo('professor')">
+      <div class="em">👨‍🏫</div>
+      <div><div class="tt">Sou Professor ou Administrador</div><div class="ds">Lançar notas, gerir turmas e materiais</div></div>
+    </div>
+    <div class="op" onclick="entrarComo('aluno')">
+      <div class="em">🎓</div>
+      <div><div class="tt">Sou Aluno</div><div class="ds">Ver as minhas notas e materiais</div></div>
+    </div>
+    <div class="op" onclick="entrarComo('encarregado')">
+      <div class="em">👪</div>
+      <div><div class="tt">Sou Encarregado de Educação</div><div class="ds">Acompanhar as notas do meu educando</div></div>
+    </div>
+  </div>
+  <div id="carregando" style="font-size:.8rem;color:var(--mu)">A entrar...</div>
+</div>
+
+<script>
+const PAGINAS={professor:'index.html',aluno:'aluno.html',encarregado:'encarregado.html'};
+
+function entrarComo(papel){
+  localStorage.setItem('cpa_papel',papel);
+  document.getElementById('escolha').style.display='none';
+  document.getElementById('carregando').style.display='block';
+  location.replace(PAGINAS[papel]);
+}
+
+// Se já escolheu antes neste dispositivo, entra directo sem perguntar de novo
+(function(){
+  const papel=localStorage.getItem('cpa_papel');
+  const params=new URLSearchParams(location.search);
+  if(papel&&PAGINAS[papel]&&!params.has('trocar')){
+    document.getElementById('escolha').style.display='none';
+    document.getElementById('carregando').style.display='block';
+    location.replace(PAGINAS[papel]);
+  }
+})();
+</script>
+</body>
+</html>
