@@ -43,4 +43,4 @@ function renderEstatisticasUso(){
 // (localStorage). Para uma visão agregada entre dispositivos, seria necessário
 // consultar o Firestore (colecção "alunos"), o que pode ser activado depois.
 const _origRenderAdm=renderAdm;
-renderAdm=function(){_origRenderAdm();renderEstatisticasUso();};
+renderAdm=function(){_origRenderAdm();renderEstatisticasUso();if(typeof renderRelatorioCard==='function')renderRelatorioCard();};

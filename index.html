@@ -19,6 +19,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="fase1.css">
 <style>
 :root{--ac:#00c9a7;--ac2:#0099ff;--dg:#ef4444;--wn:#f59e0b;--ok:#10b981;--pu:#a855f7;--gd:#f59e0b}
@@ -443,6 +444,7 @@ tfoot td{padding:9px;text-align:center;font-weight:800;background:var(--c2);bord
       <div class="card"><div class="ct">📊 Estatísticas Globais</div><div class="sg"><div class="sc2"><div class="sn te" id="aP">0</div><div class="sl">Professores</div></div><div class="sc2"><div class="sn az" id="aA">0</div><div class="sl">Total Alunos</div></div><div class="sc2"><div class="sn ro" id="aB">0</div><div class="sl">Boletins</div></div><div class="sc2"><div class="sn ok" id="aAp">—</div><div class="sl">Taxa Aprovação</div></div></div></div>
       <div class="card"><div class="ct">👨‍🏫 Professores Registados</div><div id="admPList"></div></div>
       <div class="card"><div class="ct">📊 Estatísticas de Utilização</div><div id="admStatsResumo" style="font-size:.76rem;color:var(--mu);margin-bottom:9px"></div><div class="cw"><canvas id="gStatsProf"></canvas></div></div>
+      <div id="relatorioCardWrap"></div>
       <div class="card"><div class="ct">📋 Registo de Actividade</div><div id="admLog" style="max-height:180px;overflow-y:auto"></div><button class="btn bd" style="width:100%;margin-top:7px;font-size:.74rem" onclick="clearLog()">🗑 Limpar Registo</button></div>
 <div class="card"><div class="ct">🔑 PIN do Administrador</div>
         <div><div class="fl">PIN Atual</div><input class="fi" id="aPa" type="password" maxlength="4" placeholder="••••" style="margin-bottom:7px"></div>
@@ -687,6 +689,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-work
 <script src="importar.js"></script>
 <script src="testes.js"></script>
 <script src="backup.js"></script>
+<script src="relatorio.js"></script>
 <script src="perfilfoto.js"></script>
 <script src="estatisticas.js"></script>
 <script src="extras.js"></script>
