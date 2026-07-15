@@ -11,9 +11,9 @@
    meses. Pode ser enviado sempre que quiser, com um toque.
    ============================================================ */
 
-const EMAILJS_PUBLIC_KEY='W4dv9lIko7FUShx_Q';
-const EMAILJS_SERVICE_ID='service_kzibvea';
-const EMAILJS_TEMPLATE_ID='template_jzmd9de';
+const EMAILJS_PUBLIC_KEY='W4dv9lIko7FUShx_Q'.trim();
+const EMAILJS_SERVICE_ID='service_kzibvea'.trim();
+const EMAILJS_TEMPLATE_ID='template_jzmd9de'.trim();
 
 let _emailjsIniciado=false;
 function garantirEmailJS(){
@@ -95,12 +95,13 @@ function enviarRelatorioMensal(){
   const conteudo=gerarConteudoRelatorio();
   cfm('Vai ser enviado um relatório com o estado actual da escola por email. Continuar?',()=>{
     toast('A enviar relatório...','info');
-    emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{conteudo}).then(()=>{
+    emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{conteudo},{publicKey:EMAILJS_PUBLIC_KEY}).then(()=>{
       toast('Relatório enviado com sucesso!','success');
       logAct('Relatório mensal enviado por email');
     }).catch(err=>{
       console.error(err);
-      toast('Erro ao enviar: '+(err.text||err.message||'falha desconhecida'),'error');
+      const detalhe=[err.status,err.text||err.message].filter(Boolean).join(' — ');
+      toast('Erro ao enviar: '+(detalhe||'falha desconhecida'),'error');
     });
   },'📧','Enviar Relatório Mensal','📧 Enviar Agora','bc');
 }
