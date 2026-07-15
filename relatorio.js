@@ -11,7 +11,7 @@
    meses. Pode ser enviado sempre que quiser, com um toque.
    ============================================================ */
 
-const EMAILJS_PUBLIC_KEY='rhZQOcClJoomkajV8';
+const EMAILJS_PUBLIC_KEY='W4dv9lIko7FUShx_Q';
 const EMAILJS_SERVICE_ID='service_kzibvea';
 const EMAILJS_TEMPLATE_ID='template_jzmd9de';
 
