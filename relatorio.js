@@ -34,12 +34,25 @@ function renderRelatorioCard(){
   </div>`;
 }
 
-function gerarConteudoRelatorio(){
+async function gerarConteudoRelatorio(){
   const esc=typeof gEscola==='function'?gEscola():null;
   const nomeEscola=esc?.nome||'Escola';
   const hoje=new Date().toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
 
-  const alunosBol=typeof dBol!=='undefined'?dBol:[];
+  // Vai buscar os alunos de TODOS os professores directamente ao Firebase —
+  // usar apenas a variável local "dBol" só mostraria os alunos do perfil
+  // que estiver ligado no momento (ex: o Administrador, que normalmente
+  // não lança notas), dando sempre "0 alunos" para quem gera o relatório.
+  let alunosBol=[];
+  try{
+    const snap=await fbDB.collection('alunos').where('tipo','==','bol').get();
+    alunosBol=snap.docs.map(d=>d.data());
+  }catch(e){
+    console.error(e);
+    toast('Aviso: não consegui buscar os alunos ao Firebase, o relatório pode estar incompleto.','error');
+    alunosBol=typeof dBol!=='undefined'?dBol:[]; // recurso local, se o Firebase falhar
+  }
+
   const totalBol=alunosBol.length;
   const aprovados=alunosBol.filter(b=>b.apv).length;
   const reprovados=totalBol-aprovados;
@@ -92,8 +105,9 @@ function enviarRelatorioMensal(){
     toast('Biblioteca de email não carregou. Verifique a internet e recarregue a página.','error');
     return;
   }
-  const conteudo=gerarConteudoRelatorio();
-  cfm('Vai ser enviado um relatório com o estado actual da escola por email. Continuar?',()=>{
+  cfm('Vai ser enviado um relatório com o estado actual da escola por email. Continuar?',async()=>{
+    toast('A preparar relatório...','info');
+    const conteudo=await gerarConteudoRelatorio();
     toast('A enviar relatório...','info');
     emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{conteudo},{publicKey:EMAILJS_PUBLIC_KEY}).then(()=>{
       toast('Relatório enviado com sucesso!','success');
