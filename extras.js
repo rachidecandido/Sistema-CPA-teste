@@ -105,7 +105,13 @@ function applyExamModeUI(){
 function gerarMeuQR(){
   if(!PA){toast('Disponível apenas para perfis de Professor.','error');return}
   if(typeof QRCode==='undefined'){toast('Biblioteca de QR não carregada.','error');return}
-  const payload=JSON.stringify({id:PA.id,pin:PA.pin,nome:PA.nome,av:PA.av||'👨‍🏫'});
+  const dadosOriginais=JSON.stringify({id:PA.id,pin:PA.pin,nome:PA.nome});
+  // Codifica em Base64 antes de gerar o QR: a biblioteca de geração de QR usada
+  // tem um problema conhecido com certos caracteres (incluindo acentos), que
+  // pode corromper o código sem isso ser visível a olho nu — a câmara então
+  // não consegue ler, mesmo o código parecendo normal no ecrã. Base64 evita
+  // isto por usar sempre um conjunto simples e seguro de caracteres.
+  const payload=btoa(unescape(encodeURIComponent(dadosOriginais)));
   document.getElementById('moQRB').innerHTML=`<div style="text-align:center"><div style="font-size:.82rem;color:var(--mu);margin-bottom:11px">Mostre este código para entrar rapidamente sem digitar o PIN — funciona neste dispositivo, e também para <b>levar o seu perfil para outro telemóvel</b> (as notas já lançadas continuam a aparecer).</div><div id="qrCanvasHolder" style="display:inline-block;background:#fff;padding:12px;border-radius:12px"></div><div style="font-size:.68rem;color:var(--mu);margin:10px 0 4px">⚠️ Não partilhe este código — ele dá acesso ao seu perfil.</div><div class="fl" style="text-align:left;margin-top:9px">Sem câmara? Copie este código de texto:</div><textarea class="fi" readonly onclick="this.select()" style="font-size:.68rem;resize:none" rows="2">${payload}</textarea></div>`;
   document.getElementById('moQR').classList.add('open');
   const holder=document.getElementById('qrCanvasHolder');
@@ -191,8 +197,20 @@ function importarPorCodigo(){
 }
 
 function handleQRDetectado(qrTexto){
+  let d;
   try{
-    const d=JSON.parse(qrTexto);
+    // Formato novo: texto vem codificado em Base64 (mais seguro para QR)
+    d=JSON.parse(decodeURIComponent(escape(atob(qrTexto))));
+  }catch(e1){
+    try{
+      // Formato antigo (códigos gerados antes desta correcção): texto simples
+      d=JSON.parse(qrTexto);
+    }catch(e2){
+      toast('Código lido não é um QR válido do Sistema C.P.A.','error');
+      return;
+    }
+  }
+  try{
     if(!d.id||!d.pin){throw new Error('formato inválido')}
     const profs=gProfs();
     let p=profs.find(x=>x.id===d.id&&x.pin===d.pin);
