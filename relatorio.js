@@ -30,8 +30,33 @@ function renderRelatorioCard(){
   el.innerHTML=`
   <div class="card"><div class="ct">📧 Relatório Mensal por Email</div>
     <div style="font-size:.72rem;color:var(--mu);margin-bottom:10px">Gera um resumo do estado actual da escola (aprovação, alunos em risco, materiais, eventos) e envia por email. Não é automático por calendário — toque sempre que quiser enviar um relatório actualizado.</div>
-    <button class="btn bs" style="width:100%" onclick="enviarRelatorioMensal()">📧 Gerar e Enviar Relatório Agora</button>
+    <button class="btn bs" style="width:100%;margin-bottom:8px" onclick="enviarRelatorioMensal()">📧 Gerar e Enviar Relatório Agora</button>
+    <button class="btn bl" style="width:100%" onclick="partilharRelatorioWhatsApp()">📱 Partilhar Resumo por WhatsApp</button>
   </div>`;
+  garantirLembreteRelatorioNoCalendario();
+}
+
+// Garante que existe sempre um lembrete no Calendário Escolar para o dia 1
+// do próximo mês, para não se esquecer de enviar o relatório — recria-o
+// automaticamente todos os meses (não precisa de fazer nada manualmente).
+function garantirLembreteRelatorioNoCalendario(){
+  if(typeof gCalEventos!=='function'||typeof sCalEventos!=='function')return;
+  const hoje=new Date();
+  const proximoDia1=new Date(hoje.getFullYear(),hoje.getMonth()+(hoje.getDate()>1?1:0),1);
+  const dataStr=proximoDia1.toISOString().slice(0,10);
+  const eventos=gCalEventos();
+  const jaExiste=eventos.some(e=>e._lembreteRelatorio&&e.data===dataStr);
+  if(jaExiste)return;
+  eventos.push({
+    id:Date.now(),
+    titulo:'📧 Enviar Relatório Mensal aos encarregados/director',
+    tipo:'outro',
+    data:dataStr,
+    turma:'',
+    desc:'Lembrete automático do Sistema C.P.A — Painel Administrador → Enviar Relatório.',
+    _lembreteRelatorio:true
+  });
+  sCalEventos(eventos);
 }
 
 async function gerarConteudoRelatorio(){
@@ -98,6 +123,25 @@ async function gerarConteudoRelatorio(){
   }
 
   return html;
+}
+
+// Versão em texto simples do relatório (sem tags HTML), para partilhar por
+// WhatsApp — o WhatsApp não interpreta HTML, por isso as tags <b>/<br>
+// apareceriam literalmente se usássemos o mesmo texto do email.
+async function gerarResumoTextoPlano(){
+  const html=await gerarConteudoRelatorio();
+  return html
+    .replace(/<br\s*\/?>/g,'\n')
+    .replace(/<b>/g,'*').replace(/<\/b>/g,'*') // negrito do WhatsApp usa asteriscos
+    .replace(/<[^>]+>/g,'');
+}
+
+function partilharRelatorioWhatsApp(){
+  toast('A preparar resumo...','info');
+  gerarResumoTextoPlano().then(texto=>{
+    const url='https://wa.me/?text='+encodeURIComponent(texto);
+    window.open(url,'_blank');
+  });
 }
 
 function enviarRelatorioMensal(){

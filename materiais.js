@@ -153,9 +153,20 @@ async function carregarMateriaisProfessor(){
     el.innerHTML=docs.map(doc=>{
       const m=doc.data();
       const dataEnv=m.data?.toDate?m.data.toDate().toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-      return `<div class="hi"><div style="font-size:1.2rem;width:28px;text-align:center">${icones[m.tipo]||'📄'}</div><div style="flex:1;min-width:0"><div class="hn">${m.titulo}</div><div class="hm">${[m.turma,m.disciplina].filter(Boolean).join(' · ')}${dataEnv?' · 📅 '+dataEnv:''}</div></div><div class="ha"><button class="bsm sx" onclick="removerMaterial('${doc.id}')">✕</button></div></div>`;
+      return `<div class="hi"><div style="font-size:1.2rem;width:28px;text-align:center">${icones[m.tipo]||'📄'}</div><div style="flex:1;min-width:0"><div class="hn">${m.titulo}</div><div class="hm">${[m.turma,m.disciplina].filter(Boolean).join(' · ')}${dataEnv?' · 📅 '+dataEnv:''}</div></div><div class="ha"><button class="bsm bl" onclick="partilharMaterialWhatsApp('${m.titulo.replace(/'/g,"\\'")}','${(m.turma||'').replace(/'/g,"\\'")}','${m.tipo}','${(m.link||'').replace(/'/g,"\\'")}')">📱</button><button class="bsm sx" onclick="removerMaterial('${doc.id}')">✕</button></div></div>`;
     }).join('');
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar materiais.</div>';console.error(e);}
+}
+
+// Partilha um aviso sobre o material por WhatsApp. Ficheiros/textos não podem
+// ser anexados directamente (o WhatsApp Web não suporta isso via link), por
+// isso o aviso aponta para o Portal do Aluno/Encarregado onde já está disponível.
+function partilharMaterialWhatsApp(titulo,turma,tipo,link){
+  let msg=`📚 Novo material de apoio disponível: "${titulo}"${turma?' — Turma '+turma:''}.\n`;
+  msg+=tipo==='link'&&link
+    ?`Aceda directamente aqui: ${link}`
+    :`Consulte no Portal do Aluno/Encarregado do Sistema C.P.A.`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 
 function removerMaterial(id){

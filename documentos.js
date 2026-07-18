@@ -4,6 +4,18 @@
    Depende de: index.html (dBol, gEscola/escolaPdfHeader/escolaPdfAssinatura de escola.js, toast)
    ============================================================ */
 
+// ── NOTIFICAR ENCARREGADO POR WHATSAPP ──
+// Não temos o número de telefone do encarregado guardado (só o email para o
+// Portal), por isso abre o WhatsApp com a mensagem pronta e deixa o professor
+// escolher o contacto manualmente.
+function notificarWhatsApp(alunoId){
+  const b=dBol.find(x=>x.id===alunoId);
+  if(!b){toast('Aluno não encontrado.','error');return}
+  const situ=b.apv?'✅ está APROVADO(A)':'⚠️ está em situação de REPROVADO(A)';
+  const msg=`Olá! Informamos que o(a) aluno(a) *${b.nm}* (${b.tr||'—'}, ${b.pd||'—'}) ${situ}, com média de ${(b.mg||0).toFixed(1)} valores.\n\nSistema C.P.A — ${b.cl||''}ª Classe`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
 let gEvolBol=null;
 
 // ── EVOLUÇÃO DO ALUNO ENTRE TRIMESTRES (gráfico de linha) + PREVISÃO ──
@@ -37,6 +49,43 @@ function verEvolucaoBol(alunoId){
       options:{scales:{y:{beginAtZero:true,max:20}},plugins:{legend:{display:false}}}
     });
   },150);
+}
+
+// ── HISTÓRICO DO ALUNO AO LONGO DE VÁRIOS ANOS LECTIVOS ──
+async function verHistoricoAnosAluno(alunoId){
+  const b=dBol.find(x=>x.id===alunoId);
+  if(!b){toast('Aluno não encontrado.','error');return}
+  document.getElementById('moDocsB').innerHTML=`<div style="font-weight:800;font-size:.95rem;margin-bottom:9px">🗂️ Histórico de ${b.nm}</div><div class="empty">A procurar registos de anos anteriores...</div>`;
+  document.getElementById('moDocs').classList.add('open');
+  try{
+    const snap=await fbDB.collection('alunos').where('nm','==',b.nm).where('tipo','==','bol').get();
+    const registos=snap.docs.map(d=>d.data()).filter(r=>r.an);
+    // agrupa por ano lectivo, ficando só com o registo mais recente de cada ano
+    const porAno={};
+    registos.forEach(r=>{
+      if(!porAno[r.an]||( r.dt&&(!porAno[r.an].dt||r.dt>porAno[r.an].dt)))porAno[r.an]=r;
+    });
+    const anos=Object.keys(porAno).sort();
+    if(anos.length<=1){
+      document.getElementById('moDocsB').innerHTML=`<div style="font-weight:800;font-size:.95rem;margin-bottom:9px">🗂️ Histórico de ${b.nm}</div><div class="empty">Só há registos para um ano lectivo (${anos[0]||b.an||'—'}). O histórico mostra-se automaticamente quando houver mais do que um ano lançado para este aluno.</div>`;
+      return;
+    }
+    const linhas=anos.map(an=>{
+      const r=porAno[an];
+      return `<tr><td style="text-align:left">${an}</td><td>${r.cl||'—'}</td><td>${r.tr||'—'}</td><td style="font-weight:700;color:${r.mg>=10?'var(--ok)':'var(--dg)'}">${(r.mg||0).toFixed(1)}</td><td>${r.apv?'✅ Aprovado':'❌ Reprovado'}</td></tr>`;
+    }).join('');
+    document.getElementById('moDocsB').innerHTML=`
+      <div style="font-weight:800;font-size:.95rem;margin-bottom:9px">🗂️ Histórico de ${b.nm}</div>
+      <div class="tw"><table><thead><tr><th style="text-align:left">Ano</th><th>Classe</th><th>Turma</th><th>Média</th><th>Situação</th></tr></thead><tbody>${linhas}</tbody></table></div>
+      <div class="cw" style="margin-top:12px"><canvas id="gHistAnos"></canvas></div>`;
+    setTimeout(()=>{
+      const ctx=document.getElementById('gHistAnos').getContext('2d');
+      new Chart(ctx,{type:'line',data:{labels:anos,datasets:[{label:'Média por Ano Lectivo',data:anos.map(a=>porAno[a].mg||0),borderColor:'#00c9a7',backgroundColor:'rgba(0,201,167,.15)',tension:.3,fill:true}]},options:{scales:{y:{beginAtZero:true,max:20}},plugins:{legend:{display:false}}}});
+    },150);
+  }catch(e){
+    console.error(e);
+    document.getElementById('moDocsB').innerHTML=`<div class="empty">Erro ao carregar histórico. Verifique a internet.</div>`;
+  }
 }
 
 // ── CERTIFICADO DE APROVAÇÃO / CONCLUSÃO ──

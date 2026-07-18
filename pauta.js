@@ -32,7 +32,7 @@ function renderPauta(){
     </div>
     <div style="font-size:.68rem;color:var(--mu);margin-bottom:7px">🎤 Toque num campo de nota e depois no botão de microfone para ditar o valor por voz.</div>
     <div id="ptTableWrap"></div>
-    <div class="bg" style="margin-top:9px"><button class="btn bs" onclick="salvarPauta()">💾 Guardar Pauta Completa</button><button class="btn bp" onclick="pdfPauta()">📄 PDF Oficial</button><button class="btn bl" onclick="ditarNotaPauta()">🎤 Ditar Nota</button></div>
+    <div class="bg" style="margin-top:9px"><button class="btn bs" onclick="salvarPauta()">💾 Guardar Pauta Completa</button><button class="btn bp" onclick="pdfPauta()">📄 PDF Oficial</button><button class="btn bl" onclick="exportarPautaExcel()">📊 Excel</button><button class="btn bl" onclick="ditarNotaPauta()">🎤 Ditar Nota</button></div>
   </div>
 
   <div class="card"><div class="ct">📈 Aproveitamento da Turma</div><div id="ptAprov"></div></div>
@@ -89,6 +89,29 @@ function buildPautaTable(){
   wrap.querySelectorAll('.pt-in').forEach(inp=>{
     inp.addEventListener('focus',()=>{_vozAlvoPauta=inp;});
   });
+}
+
+function exportarPautaExcel(){
+  const turma=document.getElementById('ptTurma').value;
+  const classe=document.getElementById('ptClasse').value;
+  if(!turma){toast('Seleccione uma turma!','error');return}
+  const alunos=dBol.filter(b=>b.tr===turma);
+  if(!alunos.length){toast('Sem alunos guardados nesta turma!','error');return}
+  if(typeof XLSX==='undefined'){toast('Biblioteca de Excel não carregou. Verifique a internet e tente novamente.','error');return}
+  const disc=disciplinasDaTurma(turma,classe);
+  const linhas=alunos.map((a,i)=>{
+    const linha={'Nº':i+1,'Nome':a.nm,'Matrícula':a.mt||''};
+    disc.forEach(d=>{linha[d]=a.notas?.[d]?.media?a.notas[d].media.toFixed(1):'';});
+    linha['Média']=(a.mg||0).toFixed(1);
+    linha['Situação']=a.apv?'APROVADO':'REPROVADO';
+    return linha;
+  });
+  const ws=XLSX.utils.json_to_sheet(linhas);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,turma.slice(0,28)||'Pauta');
+  XLSX.writeFile(wb,`pauta_${turma.replace(/\s+/g,'_')}.xlsx`);
+  toast('Excel gerado com sucesso!','success');
+  logAct('Pauta exportada em Excel',turma);
 }
 
 // ── DITAR NOTA POR VOZ ──

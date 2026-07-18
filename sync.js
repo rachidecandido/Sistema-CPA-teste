@@ -197,6 +197,41 @@ if(_origSPerguntas){
   sPerguntas=function(p){_origSPerguntas(p);syncPerguntasFirebase();};
 }
 
+// ── PROPINAS/PAGAMENTOS (sincronizados entre dispositivos) ──
+async function syncPropinasFirebase(){
+  try{
+    const propinas=gPropinas();
+    if(!propinas.length)return;
+    const batch=fbDB.batch();
+    propinas.forEach(p=>batch.set(fbDB.collection('propinas').doc(String(p.id)),p,{merge:true}));
+    await batch.commit();
+  }catch(e){console.error(e);}
+}
+async function pullPropinasFirebase(){
+  try{
+    const snap=await fbDB.collection('propinas').get();
+    if(snap.empty)return;
+    const locais=gPropinas();
+    snap.forEach(doc=>{
+      const remota=doc.data();
+      const idx=locais.findIndex(p=>String(p.id)===doc.id);
+      if(idx>=0)locais[idx]=remota;else locais.push(remota);
+    });
+    _origSPropinas(locais);
+    if(typeof renderListaPropinas==='function')renderListaPropinas();
+  }catch(e){console.error(e);}
+}
+const _origSPropinas=typeof sPropinas==='function'?sPropinas:null;
+if(_origSPropinas){
+  sPropinas=function(p){_origSPropinas(p);syncPropinasFirebase();};
+}
+
+// Puxa Turmas, Calendário, Perguntas e Propinas assim que o professor ou admin entra
+const _origActivateProf6=activateProf;
+activateProf=function(prof){_origActivateProf6(prof);pullPropinasFirebase();};
+const _origActivateAdm5=activateAdm;
+activateAdm=function(){_origActivateAdm5();pullPropinasFirebase();};
+
 // Puxa Turmas, Calendário e Perguntas assim que o professor ou admin entra
 const _origActivateProf5=activateProf;
 activateProf=function(prof){_origActivateProf5(prof);pullTurmasFirebase();pullCalendarioFirebase();pullPerguntasFirebase();};
