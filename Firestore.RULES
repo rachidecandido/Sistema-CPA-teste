@@ -46,6 +46,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Propinas/Pagamentos — sincronizado entre dispositivos dos professores
+    match /propinas/{propinaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Registos de alunos (CPA + Boletim)
     // Leitura: pública (necessária para o portal do encarregado/aluno ler pelo email/matrícula)
     // Escrita: livre (vem da app do professor, sem Firebase Auth)
