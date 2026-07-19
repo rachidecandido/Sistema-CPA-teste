@@ -103,6 +103,7 @@ function renderAtrasos(){
 function gerarReciboPropina(id){
   const p=gPropinas().find(x=>x.id===id);
   if(!p){toast('Registo não encontrado.','error');return}
+  if(!bibliotecaPDFDisponivel())return;
   const {jsPDF}=window.jspdf,doc=new jsPDF(),c=[0,201,167];
   doc.setFillColor(...c);doc.rect(0,0,210,16,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(12);doc.setFont(undefined,'bold');

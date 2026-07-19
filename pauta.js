@@ -97,7 +97,7 @@ function exportarPautaExcel(){
   if(!turma){toast('Seleccione uma turma!','error');return}
   const alunos=dBol.filter(b=>b.tr===turma);
   if(!alunos.length){toast('Sem alunos guardados nesta turma!','error');return}
-  if(typeof XLSX==='undefined'){toast('Biblioteca de Excel não carregou. Verifique a internet e tente novamente.','error');return}
+  if(typeof XLSX==='undefined'){bibliotecaExcelDisponivel();return}
   const disc=disciplinasDaTurma(turma,classe);
   const linhas=alunos.map((a,i)=>{
     const linha={'Nº':i+1,'Nome':a.nm,'Matrícula':a.mt||''};
@@ -272,6 +272,7 @@ function pdfPauta(){
   const alunos=dBol.filter(b=>b.tr===turma);
   if(!alunos.length){toast('Sem alunos guardados nesta turma!','error');return}
   const disc=disciplinasDaTurma(turma,classe);
+  if(!bibliotecaPDFDisponivel())return;
   const {jsPDF}=window.jspdf,doc=new jsPDF('landscape'),c=[0,201,167];
   doc.setFillColor(...c);doc.rect(0,0,297,16,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(12);doc.setFont(undefined,'bold');

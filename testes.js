@@ -109,6 +109,7 @@ function gerarPDFTeste(comRespostas){
   if(!idsSelecionados.length){toast('Marque pelo menos uma pergunta na lista!','error');return}
   const perguntas=gPerguntas().filter(p=>idsSelecionados.includes(p.id));
   const totalPontos=perguntas.reduce((s,p)=>s+(p.valor||0),0);
+  if(!bibliotecaPDFDisponivel())return;
 
   const {jsPDF}=window.jspdf,doc=new jsPDF(),c=[0,201,167];
   doc.setFillColor(...c);doc.rect(0,0,210,16,'F');

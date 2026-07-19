@@ -93,6 +93,7 @@ function gerarCertificado(alunoId){
   const b=dBol.find(x=>x.id===alunoId);
   if(!b){toast('Aluno não encontrado.','error');return}
   if(!b.apv){toast('Só é possível gerar certificado para alunos aprovados.','error');return}
+  if(!bibliotecaPDFDisponivel())return;
   const {jsPDF}=window.jspdf,doc=new jsPDF('landscape');
   doc.setFillColor(0,201,167);doc.rect(0,0,297,210,'F');
   doc.setFillColor(255,255,255);doc.rect(8,8,281,194,'F');
@@ -124,6 +125,7 @@ function gerarDeclaracao(alunoId){
   const b=dBol.find(x=>x.id===alunoId);
   if(!b){toast('Aluno não encontrado.','error');return}
   const esc=typeof gEscola==='function'?gEscola():null;
+  if(!bibliotecaPDFDisponivel())return;
   const {jsPDF}=window.jspdf,doc=new jsPDF();
   const c=[0,201,167];
   doc.setFillColor(...c);doc.rect(0,0,210,16,'F');

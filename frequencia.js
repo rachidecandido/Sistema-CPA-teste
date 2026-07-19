@@ -97,6 +97,7 @@ function pdfFrequencia(){
   if(!turma){toast('Seleccione uma turma!','error');return}
   const dados=calcAssiduidade(turma);
   if(!dados.length){toast('Sem dados de presença para esta turma!','error');return}
+  if(!bibliotecaPDFDisponivel())return;
   const {jsPDF}=window.jspdf,doc=new jsPDF(),c=[0,201,167];
   doc.setFillColor(...c);doc.rect(0,0,210,16,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(12);doc.setFont(undefined,'bold');
