@@ -280,6 +280,7 @@ tfoot td{padding:9px;text-align:center;font-weight:800;background:var(--c2);bord
     <button class="di" onclick="goto('testes');closeDrawer()"><span class="ic">📝</span>Banco de Perguntas/Testes</button>
     <button class="di" onclick="goto('backup');closeDrawer()"><span class="ic">💾</span>Cópia de Segurança</button>
     <button class="di" onclick="goto('propinas');closeDrawer()"><span class="ic">💵</span>Propinas/Pagamentos</button>
+    <button class="di" onclick="goto('dup');closeDrawer()"><span class="ic">🔍</span>Detector de Duplicados</button>
     <button class="di" onclick="toggleExamMode();closeDrawer()"><span class="ic">🔒</span>Modo de Exame</button>
     <hr class="d-sep"><a href="portal.html?trocar=1" class="di" style="text-decoration:none;display:flex"><span class="ic">🔄</span>Trocar Tipo de Utilizador</a><button class="di" style="color:var(--dg)" onclick="doLogout();closeDrawer()"><span class="ic">🚪</span>Sair do Perfil</button>
   </div>
@@ -467,7 +468,7 @@ tfoot td{padding:9px;text-align:center;font-weight:800;background:var(--c2);bord
     <div class="sec" id="sec-testes"></div>
     <div class="sec" id="sec-backup"></div>
     <div class="sec" id="sec-propinas"></div>
-    <div class="sec" id="sec-propinas"></div>
+    <div class="sec" id="sec-dup"></div>
 
   </div>
   <nav class="bottom-nav">
@@ -550,7 +551,7 @@ function doLogout(){cfm('Vai sair do perfil actual.',()=>{PA=null;isAdm=false;db
 function openDrawer(){document.getElementById('dR').classList.add('open');document.getElementById('dO').classList.add('open')}
 function closeDrawer(){document.getElementById('dR').classList.remove('open');document.getElementById('dO').classList.remove('open')}
 // NAV
-function goto(sec,ti){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nt').forEach(b=>b.classList.remove('active'));document.getElementById('sec-'+sec).classList.add('active');const tabs=document.querySelectorAll('.nt');if(ti>=0&&ti<tabs.length)tabs[ti].classList.add('active');if(sec==='db')renderDB();if(sec==='rk')renderRk();if(sec==='ht')renderHt();if(sec==='bh')renderBh();if(sec==='pf')renderPf();if(sec==='adm')renderAdm();if(sec==='escola'&&typeof renderEscola==='function')renderEscola();if(sec==='pauta'&&typeof renderPauta==='function')renderPauta();if(sec==='cal'&&typeof renderCalendario==='function')renderCalendario();if(sec==='msg'&&typeof renderMensagensSection==='function')renderMensagensSection();if(sec==='freq'&&typeof renderFrequencia==='function')renderFrequencia();if(sec==='mat'&&typeof renderMateriais==='function')renderMateriais();if(sec==='imp'&&typeof renderImportar==='function')renderImportar();if(sec==='testes'&&typeof renderTestes==='function')renderTestes();if(sec==='backup'&&typeof renderBackup==='function')renderBackup();if(sec==='propinas'&&typeof renderPropinas==='function')renderPropinas()}
+function goto(sec,ti){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nt').forEach(b=>b.classList.remove('active'));document.getElementById('sec-'+sec).classList.add('active');const tabs=document.querySelectorAll('.nt');if(ti>=0&&ti<tabs.length)tabs[ti].classList.add('active');if(sec==='db')renderDB();if(sec==='rk')renderRk();if(sec==='ht')renderHt();if(sec==='bh')renderBh();if(sec==='pf')renderPf();if(sec==='adm')renderAdm();if(sec==='escola'&&typeof renderEscola==='function')renderEscola();if(sec==='pauta'&&typeof renderPauta==='function')renderPauta();if(sec==='cal'&&typeof renderCalendario==='function')renderCalendario();if(sec==='msg'&&typeof renderMensagensSection==='function')renderMensagensSection();if(sec==='freq'&&typeof renderFrequencia==='function')renderFrequencia();if(sec==='mat'&&typeof renderMateriais==='function')renderMateriais();if(sec==='imp'&&typeof renderImportar==='function')renderImportar();if(sec==='testes'&&typeof renderTestes==='function')renderTestes();if(sec==='backup'&&typeof renderBackup==='function')renderBackup();if(sec==='propinas'&&typeof renderPropinas==='function')renderPropinas();if(sec==='dup'&&typeof renderDuplicados==='function')renderDuplicados()}
 // CPA TABLE
 function buildCPATable(){const t=document.getElementById('tCPA');if(t.children.length)return;DC.forEach(d=>{const tr=document.createElement('tr');tr.dataset.s=d.id;tr.innerHTML=`<td>${d.n}</td><td>${d.f8?`<input type="number" class="it n8" min="0" max="20" oninput="vIn(this);autoCalc()">`:
 `<span class="na">N/A</span>`}</td><td><input type="number" class="it n9" min="0" max="20" oninput="vIn(this);autoCalc()"></td><td><input type="number" class="it n10" min="0" max="20" oninput="vIn(this);autoCalc()"></td><td class="mc">—</td>`;t.appendChild(tr)})}
@@ -696,6 +697,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-work
 <script src="backup.js"></script>
 <script src="relatorio.js"></script>
 <script src="propinas.js"></script>
+<script src="duplicados.js"></script>
 <script src="perfilfoto.js"></script>
 <script src="estatisticas.js"></script>
 <script src="extras.js"></script>

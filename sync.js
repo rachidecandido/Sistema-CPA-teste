@@ -21,18 +21,37 @@ function marcarSyncUI(status){
 }
 
 // ── ENVIAR UM ALUNO (CPA ou BOLETIM) PARA O FIRESTORE ──
+// Protegido contra conflitos: se este mesmo professor tiver editado o mesmo
+// aluno noutro dispositivo mais recentemente, NÃO sobrescreve — em vez disso
+// traz essa versão mais recente para este dispositivo. Isto evita que, ao
+// usar o Sistema C.P.A em dois telemóveis, uma alteração feita num apague
+// silenciosamente uma alteração mais recente feita no outro.
 async function syncAlunoToFirebase(entry,tipo){
   if(!PA)return;
   try{
     marcarSyncUI('syncing');
     const docId=`${PA.id}_${tipo}_${entry.id}`;
-    await fbDB.collection('alunos').doc(docId).set({
+    const ref=fbDB.collection('alunos').doc(docId);
+    const existente=await ref.get();
+    if(existente.exists){
+      const remoto=existente.data();
+      const remotoTs=remoto.updatedAt&&remoto.updatedAt.toMillis?remoto.updatedAt.toMillis():0;
+      const localTs=entry._syncedAt||0;
+      if(remotoTs>localTs+2000){ // margem de 2s para evitar falsos positivos do próprio dispositivo
+        aplicarVersaoRemotaLocal(remoto,tipo);
+        marcarSyncUI('ok');
+        toast('⚠️ Este aluno tinha uma alteração mais recente feita noutro dispositivo — foi mantida essa versão.','info');
+        return;
+      }
+    }
+    await ref.set({
       ...entry,
       tipo,
       professorId:PA.id,
       professorNome:PA.nome,
       updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     },{merge:true});
+    entry._syncedAt=Date.now();
     marcarSyncUI('ok');
     // se for boletim e o aluno reprovou, cria notificação para o encarregado (se vinculado)
     if(tipo==='bol'&&entry.apv===false&&entry.encEmail){
@@ -44,6 +63,22 @@ async function syncAlunoToFirebase(entry,tipo){
   }
 }
 
+// Aplica localmente uma versão vinda do Firebase (usada quando se detecta que
+// o servidor tem dados mais recentes do que os deste dispositivo)
+function aplicarVersaoRemotaLocal(remoto,tipo){
+  remoto._syncedAt=Date.now();
+  if(tipo==='cpa'&&typeof db!=='undefined'){
+    const idx=db.findIndex(x=>x.id===remoto.id);
+    if(idx>=0)db[idx]=remoto;else db.push(remoto);
+    localStorage.setItem(dbK(PA.id),JSON.stringify(db));
+  }else if(tipo==='bol'&&typeof dBol!=='undefined'){
+    const idx=dBol.findIndex(x=>x.id===remoto.id);
+    if(idx>=0)dBol[idx]=remoto;else dBol.push(remoto);
+    localStorage.setItem(dbBK(PA.id),JSON.stringify(dBol));
+  }
+  if(typeof renderDB==='function')renderDB();
+}
+
 // ── PUXAR TODOS OS ALUNOS DO PROFESSOR ACTUAL DO FIRESTORE ──
 async function pullAlunosFromFirebase(){
   if(!PA)return;
@@ -52,6 +87,7 @@ async function pullAlunosFromFirebase(){
     const snap=await fbDB.collection('alunos').where('professorId','==',PA.id).get();
     snap.forEach(doc=>{
       const d=doc.data();
+      d._syncedAt=Date.now();
       if(d.tipo==='cpa'){
         const idx=db.findIndex(x=>x.id===d.id);
         if(idx>=0)db[idx]={...db[idx],...d};else db.push(d);
