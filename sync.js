@@ -6,7 +6,7 @@
 
 // ── ESTADO DE SINCRONIZAÇÃO ──
 let syncEmAndamento=false;
-function marcarSyncUI(status){
+function marcarSyncUI(status,detalhe){
   let el=document.getElementById('syncBadge');
   if(!el){
     el=document.createElement('div');
@@ -17,7 +17,7 @@ function marcarSyncUI(status){
   if(status==='ok'){el.textContent='☁️ Sincronizado';el.style.background='rgba(16,185,129,.85)';el.style.color='#fff';setTimeout(()=>{if(el)el.style.opacity='0'},2500);}
   else if(status==='syncing'){el.style.opacity='1';el.textContent='🔄 A sincronizar...';el.style.background='rgba(0,153,255,.85)';el.style.color='#fff';}
   else if(status==='off'){el.style.opacity='1';el.textContent='📵 Sem ligação — guardado localmente';el.style.background='rgba(245,158,11,.9)';el.style.color='#222';}
-  else if(status==='error'){el.style.opacity='1';el.textContent='⚠️ Erro de sincronização';el.style.background='rgba(239,68,68,.9)';el.style.color='#fff';}
+  else if(status==='error'){el.style.opacity='1';el.textContent='⚠️ Erro: '+(detalhe||'sincronização');el.style.background='rgba(239,68,68,.9)';el.style.color='#fff';}
 }
 
 // ── ENVIAR UM ALUNO (CPA ou BOLETIM) PARA O FIRESTORE ──
@@ -59,7 +59,7 @@ async function syncAlunoToFirebase(entry,tipo){
     }
   }catch(e){
     console.error(e);
-    marcarSyncUI(navigator.onLine?'error':'off');
+    marcarSyncUI(navigator.onLine?'error':'off',e.message||e.code);
   }
 }
 
@@ -100,7 +100,7 @@ async function pullAlunosFromFirebase(){
     marcarSyncUI('ok');
   }catch(e){
     console.error(e);
-    marcarSyncUI(navigator.onLine?'error':'off');
+    marcarSyncUI(navigator.onLine?'error':'off',e.message||e.code);
   }
 }
 
