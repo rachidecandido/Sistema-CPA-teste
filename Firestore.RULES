@@ -52,6 +52,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Contas de Professor (email/senha) — só o próprio dono (pelo UID de login)
+    // pode ler/escrever a sua ficha, que liga a conta ao identificador antigo
+    match /professores/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Registos de alunos (CPA + Boletim)
     // Leitura: pública (necessária para o portal do encarregado/aluno ler pelo email/matrícula)
     // Escrita: livre (vem da app do professor, sem Firebase Auth)
