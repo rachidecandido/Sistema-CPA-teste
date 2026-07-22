@@ -62,8 +62,8 @@ async function confirmarCriarContaProfessor(){
     // marca localmente que este perfil já tem conta (só para mostrar no painel)
     if(perfil){perfil.email=email;sProfs(profs);}
     await fbAuthSecundario.signOut(); // limpa a sessão da instância secundária
-    logAct('Conta de professor criada',_perfilParaContaNome+' — '+email);
-    toast('Conta criada! Informe o professor: email '+email+' e a senha definida.','success');
+    logAct('Conta de professor criada',_perfilParaContaNome+' — '+email+' (UID: '+uid+')');
+    toast('Conta criada! (UID: '+uid.slice(0,8)+'...) Informe o professor: email '+email+' e a senha definida.','success');
     closeModal('moContaProf');
     renderContasProfessores();
   }catch(e){
@@ -97,7 +97,7 @@ async function confirmarLoginEmailProfessor(){
     const cred=await fbAuth.signInWithEmailAndPassword(email,senha);
     const doc=await fbDB.collection('professores').doc(cred.user.uid).get();
     if(!doc.exists){
-      erroEl.textContent='Conta autenticada, mas sem perfil de professor associado. Contacte o administrador.';
+      erroEl.innerHTML='Conta autenticada, mas sem perfil de professor associado. Contacte o administrador.<br><span style="font-size:.65rem;opacity:.7">(UID: '+cred.user.uid+')</span>';
       erroEl.style.display='block';
       await fbAuth.signOut();
       return;
