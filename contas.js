@@ -26,7 +26,7 @@ function renderContasProfessores(){
 
 let _perfilParaContaId=null,_perfilParaContaNome=null;
 function abrirCriarContaProfessor(perfilId,nome){
-  if(!fbAuthSecundario){toast('Função indisponível: a instância segura do Firebase não carregou.','error');return}
+  if(!fbAuthSecundario||!fbDBSecundario){toast('Função indisponível: a instância segura do Firebase não carregou.','error');return}
   _perfilParaContaId=perfilId;
   _perfilParaContaNome=nome;
   document.getElementById('contaNomeProf').textContent=nome;
@@ -48,7 +48,11 @@ async function confirmarCriarContaProfessor(){
     const uid=cred.user.uid;
     const profs=gProfs();
     const perfil=profs.find(p=>p.id===_perfilParaContaId);
-    await fbDB.collection('professores').doc(uid).set({
+    // Usa a base de dados ligada à instância SECUNDÁRIA: é essa que está
+    // autenticada como o professor recém-criado neste preciso momento, por
+    // isso é a única que tem permissão para escrever a ficha dele agora.
+    const dbParaEscrita=fbDBSecundario||fbDB;
+    await dbParaEscrita.collection('professores').doc(uid).set({
       id:_perfilParaContaId,
       nome:_perfilParaContaNome,
       pin:perfil?.pin||'',

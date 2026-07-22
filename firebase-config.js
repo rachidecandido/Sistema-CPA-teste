@@ -14,7 +14,7 @@ const firebaseConfig = {
 
 // Usa a versão "compat" do SDK (carregada via CDN no <head>), por isso
 // esta inicialização funciona sem necessidade de bundler (npm/webpack).
-let fbAuth=null,fbDB=null,fbAuthSecundario=null;
+let fbAuth=null,fbDB=null,fbAuthSecundario=null,fbDBSecundario=null;
 try{
   if(typeof firebase==='undefined'){
     throw new Error('Bibliotecas do Firebase não carregaram (CDN bloqueado ou sem internet).');
@@ -34,6 +34,7 @@ try{
   try{
     const appSecundario=firebase.initializeApp(firebaseConfig,'secundario');
     fbAuthSecundario=appSecundario.auth();
+    fbDBSecundario=appSecundario.firestore();
   }catch(errSec){
     console.warn('Instância secundária do Firebase não disponível:',errSec);
   }
