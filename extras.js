@@ -268,6 +268,54 @@ function lerQRDaGaleria(evt){
   });
 }
 
+// ── REMOVER CARTÃO DE PROFESSOR DO ECRÃ DE BOAS-VINDAS (só deste dispositivo) ──
+// Não apaga a conta do professor, nem os dados sincronizados no Firebase —
+// só deixa de aparecer como atalho rápido neste telemóvel específico. O
+// professor continua a poder entrar aqui de novo por Email, QR ou Código.
+function injectRemoverCardModal(){
+  if(document.getElementById('moRemCard'))return;
+  const div=document.createElement('div');
+  div.className='mo';
+  div.id='moRemCard';
+  div.style.alignItems='center';
+  div.innerHTML=`<div class="md" style="border-radius:17px;max-width:305px;text-align:center;padding:22px 17px;max-height:none">
+    <div style="font-size:2rem;margin-bottom:7px">🔒</div>
+    <div style="font-weight:800;font-size:.92rem;margin-bottom:5px">Remover atalho de <span id="remCardNome"></span></div>
+    <div style="font-size:.74rem;color:var(--mu);margin-bottom:11px">Isto só remove o acesso rápido neste telemóvel. Os dados e a conta do professor continuam intactos — insira o PIN do Administrador para confirmar.</div>
+    <input type="password" inputmode="numeric" maxlength="4" id="remCardPinInput" class="fi" style="text-align:center;font-size:1.3rem;letter-spacing:8px;margin-bottom:6px" placeholder="••••">
+    <div id="remCardErr" style="color:var(--dg);font-size:.72rem;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn bl" onclick="document.getElementById('moRemCard').classList.remove('open')">✕ Cancelar</button>
+      <button class="btn bd" onclick="confirmarRemoverCardProfessor()">🗑 Remover</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+}
+let _remCardId=null,_remCardNome=null;
+function pedirRemoverCardProfessor(id,nome){
+  injectRemoverCardModal();
+  _remCardId=id;_remCardNome=nome;
+  document.getElementById('remCardNome').textContent=nome;
+  document.getElementById('remCardErr').textContent='';
+  document.getElementById('remCardPinInput').value='';
+  document.getElementById('moRemCard').classList.add('open');
+  setTimeout(()=>document.getElementById('remCardPinInput')?.focus(),100);
+}
+function confirmarRemoverCardProfessor(){
+  const pin=document.getElementById('remCardPinInput').value;
+  const admPin=gAdm()?.pin;
+  if(!admPin||pin!==admPin){
+    document.getElementById('remCardErr').textContent='PIN do Administrador incorrecto!';
+    return;
+  }
+  const profs=gProfs().filter(p=>p.id!==_remCardId);
+  sProfs(profs);
+  document.getElementById('moRemCard').classList.remove('open');
+  logAct('Atalho de professor removido deste dispositivo',_remCardNome);
+  toast('Atalho removido deste telemóvel. A conta e os dados do professor continuam intactos.','success');
+  showPinSel();
+}
+
 // Aplica o estado do Modo de Exame assim que o perfil é activado
 const _origActivateProf=activateProf;
 activateProf=function(prof){_origActivateProf(prof);applyExamModeUI();};
