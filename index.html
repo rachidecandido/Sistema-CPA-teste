@@ -53,7 +53,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .ln-icon{width:84px;height:84px;border-radius:20px;margin-bottom:18px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:2.2rem;box-shadow:0 0 40px rgba(0,201,167,.4);animation:glow 3s ease-in-out infinite}
 .ln-title{font-size:clamp(1.9rem,8vw,3.5rem);font-weight:800;background:linear-gradient(135deg,var(--tx) 40%,var(--ac));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
 .ln-sub{font-size:.86rem;color:var(--mu);margin-bottom:30px;letter-spacing:2px;text-transform:uppercase}
-#pinScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:18px;background:var(--bg);overflow-y:auto}
+#pinScreen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:18px;background:var(--bg);overflow-y:auto;box-sizing:border-box}
 .pin-card{background:var(--cd);border:1px solid var(--br);border-radius:18px;padding:24px 20px;width:100%;max-width:350px}
 .pin-title{font-size:1.1rem;font-weight:800;text-align:center;margin-bottom:5px}
 .pin-sub{font-size:.78rem;color:var(--mu);text-align:center;margin-bottom:16px}
@@ -535,8 +535,8 @@ function sAdm(a){localStorage.setItem('cpa_adm',JSON.stringify(a))}
 function dbK(id){return 'cpa_db_'+id}
 function dbBK(id){return 'cpa_bol_'+id}
 function loadDB(id){db=JSON.parse(localStorage.getItem(dbK(id))||'[]');dBol=JSON.parse(localStorage.getItem(dbBK(id))||'[]')}
-function saveDB(){localStorage.setItem(dbK(PA.id),JSON.stringify(db))}
-function saveBolDB(){localStorage.setItem(dbBK(PA.id),JSON.stringify(dBol))}
+function saveDB(){if(!PA)return;localStorage.setItem(dbK(PA.id),JSON.stringify(db))}
+function saveBolDB(){if(!PA)return;localStorage.setItem(dbBK(PA.id),JSON.stringify(dBol))}
 // FLOW
 function startFlow(){document.getElementById('landing').style.display='none';const adm=gAdm(),profs=gProfs();(!adm&&!profs.length)?showSetup():showPinSel()}
 function showSetup(){document.getElementById('pinScreen').style.display='flex';document.getElementById('pinBody').innerHTML=`<div class="pin-title">🎓 Bem-vindo ao C.P.A</div><div class="pin-sub">Configure o administrador do sistema</div><div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;padding:9px;margin-bottom:13px;font-size:.76rem;color:var(--wn);text-align:center">👑 O Administrador tem acesso total e pode gerir professores</div><div class="fl" style="margin-bottom:3px">Nome do Administrador</div><input class="fi" id="crN" type="text" placeholder="Ex: Director, Admin" style="margin-bottom:7px"><div class="fl" style="margin-bottom:3px">PIN do Administrador (4 dígitos)</div><input class="fi" id="crP" type="password" maxlength="4" placeholder="••••" style="margin-bottom:7px"><div class="fl" style="margin-bottom:3px">Confirmar PIN</div><input class="fi" id="crP2" type="password" maxlength="4" placeholder="••••" style="margin-bottom:13px"><button class="btn bg2" style="width:100%;margin-bottom:7px" onclick="doCreateAdm()">👑 Criar Administrador</button><button class="btn bc" style="width:100%" onclick="showCreateProf()">👨‍🏫 Criar Perfil de Professor</button>`}
