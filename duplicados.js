@@ -39,10 +39,70 @@ function renderDuplicados(){
   el.innerHTML=`
   <div class="card"><div class="ct">🔍 Detector de Alunos Duplicados</div>
     <div style="font-size:.72rem;color:var(--mu);margin-bottom:10px">Procura, dentro de cada turma, nomes muito parecidos que provavelmente são o mesmo aluno lançado duas vezes (por engano de digitação, acentos ou espaços).</div>
-    <button class="btn bs" style="width:100%" onclick="procurarDuplicados()">🔍 Procurar Duplicados</button>
+    <button class="btn bs" style="width:100%" onclick="procurarDuplicados()">🔍 Procurar Alunos Duplicados</button>
     <div id="dupResultado" style="margin-top:11px"></div>
+  </div>
+  <div class="card"><div class="ct">🏷️ Detector de Turmas Duplicadas</div>
+    <div style="font-size:.72rem;color:var(--mu);margin-bottom:10px">Procura turmas com nomes muito parecidos (ex: "10ª A" e "10 A") que provavelmente deviam ser a mesma turma.</div>
+    <button class="btn bs" style="width:100%" onclick="procurarTurmasDuplicadas()">🔍 Procurar Turmas Duplicadas</button>
+    <div id="dupTurmasResultado" style="margin-top:11px"></div>
   </div>`;
 }
+
+// ── DETECTOR DE TURMAS DUPLICADAS ──
+function procurarTurmasDuplicadas(){
+  const el=document.getElementById('dupTurmasResultado');
+  el.innerHTML='<div class="empty">A procurar...</div>';
+  const turmas=gTurmas();
+  const nomesLivres=[...new Set(dBol.map(b=>b.tr).filter(Boolean))].filter(n=>!turmas.some(t=>t.nome===n));
+  const todas=[...turmas.map(t=>({nome:t.nome,obj:t})),...nomesLivres.map(n=>({nome:n,obj:null}))];
+  const pares=[];
+  for(let i=0;i<todas.length;i++){
+    for(let j=i+1;j<todas.length;j++){
+      const n1=normalizarNome(todas[i].nome),n2=normalizarNome(todas[j].nome);
+      if(!n1||!n2||n1===todas[i].nome&&n2===todas[j].nome&&todas[i].nome===todas[j].nome)continue;
+      const iguais=n1===n2&&todas[i].nome!==todas[j].nome;
+      const parecidos=!iguais&&distanciaLevenshtein(n1,n2)<=2&&Math.min(n1.length,n2.length)>1;
+      if(iguais||parecidos)pares.push({a:todas[i],b:todas[j],exato:iguais});
+    }
+  }
+  if(!pares.length){el.innerHTML='<div class="empty">✅ Não foram encontradas turmas duplicadas.</div>';return}
+  el.innerHTML=pares.map(p=>{
+    const nAlunosA=dBol.filter(b=>b.tr===p.a.nome).length;
+    const nAlunosB=dBol.filter(b=>b.tr===p.b.nome).length;
+    return `<div class="card" style="background:var(--c2);margin-bottom:9px">
+      <div style="font-size:.72rem;color:${p.exato?'var(--dg)':'var(--wn)'};font-weight:700;margin-bottom:7px">${p.exato?'⚠️ Nomes idênticos':'🔸 Nomes muito parecidos'}</div>
+      <div style="display:flex;gap:9px;margin-bottom:9px">
+        <div style="flex:1;background:var(--bg);border-radius:8px;padding:8px;font-size:.74rem"><b>${p.a.nome}</b><br>${nAlunosA} alunos com registos</div>
+        <div style="flex:1;background:var(--bg);border-radius:8px;padding:8px;font-size:.74rem"><b>${p.b.nome}</b><br>${nAlunosB} alunos com registos</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+        <button class="btn bi" style="font-size:.68rem" onclick="juntarTurmasDuplicadas('${p.a.nome.replace(/'/g,"\\'")}','${p.b.nome.replace(/'/g,"\\'")}')">🔗 Manter "${p.a.nome}"</button>
+        <button class="btn bi" style="font-size:.68rem" onclick="juntarTurmasDuplicadas('${p.b.nome.replace(/'/g,"\\'")}','${p.a.nome.replace(/'/g,"\\'")}')">🔗 Manter "${p.b.nome}"</button>
+      </div>
+      <button class="btn bl" style="width:100%;margin-top:7px;font-size:.68rem" onclick="this.closest('.card').remove()">Não juntar, são turmas diferentes</button>
+    </div>`;
+  }).join('');
+}
+
+// Junta duas turmas: todos os alunos da turma removida passam a pertencer à
+// turma mantida, e a entrada de turma duplicada é removida da lista.
+function juntarTurmasDuplicadas(manterNome,removerNome){
+  cfm(`Todos os alunos de "${removerNome}" vão passar a pertencer a "${manterNome}". Esta acção não pode ser desfeita. Continuar?`,()=>{
+    let count=0;
+    dBol.forEach(b=>{if(b.tr===removerNome){b.tr=manterNome;count++;}});
+    saveBolDB();
+    if(typeof db!=='undefined')db.forEach(a=>{if(a.tr===removerNome)a.tr=manterNome;});
+    if(typeof saveDB==='function')saveDB();
+    const turmas=gTurmas().filter(t=>t.nome!==removerNome);
+    sTurmas(turmas);
+    logAct('Turmas duplicadas fundidas',removerNome+' → '+manterNome);
+    toast(count+' alunos movidos para "'+manterNome+'"!','success');
+    procurarTurmasDuplicadas();
+  },'🔗','Juntar Turmas Duplicadas','🔗 Juntar','bc');
+}
+
+// ── DETECTOR DE ALUNOS DUPLICADOS ──
 
 function procurarDuplicados(){
   const el=document.getElementById('dupResultado');

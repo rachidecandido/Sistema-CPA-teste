@@ -447,6 +447,7 @@ tfoot td{padding:9px;text-align:center;font-weight:800;background:var(--c2);bord
       <div class="card"><div class="ct">📊 Estatísticas Globais</div><div class="sg"><div class="sc2"><div class="sn te" id="aP">0</div><div class="sl">Professores</div></div><div class="sc2"><div class="sn az" id="aA">0</div><div class="sl">Total Alunos</div></div><div class="sc2"><div class="sn ro" id="aB">0</div><div class="sl">Boletins</div></div><div class="sc2"><div class="sn ok" id="aAp">—</div><div class="sl">Taxa Aprovação</div></div></div></div>
       <div class="card"><div class="ct">👨‍🏫 Professores Registados</div><div id="admPList"></div></div>
       <div class="card"><div class="ct">🔑 Contas de Professor (Email/Senha)</div><div style="font-size:.72rem;color:var(--mu);margin-bottom:9px">Crie uma conta para cada professor poder entrar em qualquer telemóvel com email e senha, mantendo acesso às notas já lançadas.</div><div id="contasProfWrap"></div></div>
+      <div id="visitanteWrap"></div>
       <div class="card"><div class="ct">📊 Estatísticas de Utilização</div><div id="admStatsResumo" style="font-size:.76rem;color:var(--mu);margin-bottom:9px"></div><div class="cw"><canvas id="gStatsProf"></canvas></div></div>
       <div id="relatorioCardWrap"></div>
       <div class="card"><div class="ct">📋 Registo de Actividade</div><div id="admLog" style="max-height:180px;overflow-y:auto"></div><button class="btn bd" style="width:100%;margin-top:7px;font-size:.74rem" onclick="clearLog()">🗑 Limpar Registo</button></div>
@@ -702,6 +703,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-work
 <script src="propinas.js"></script>
 <script src="duplicados.js"></script>
 <script src="contas.js"></script>
+<script src="visitante.js"></script>
 <script src="perfilfoto.js"></script>
 <script src="estatisticas.js"></script>
 <script src="extras.js"></script>

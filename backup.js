@@ -22,7 +22,68 @@ function renderBackup(){
     <input type="file" class="fi" id="backupFile" accept=".json" style="margin-bottom:9px">
     <button class="btn bd" style="width:100%" onclick="restaurarBackup()">⬆️ Restaurar Cópia de Segurança</button>
     <div style="font-size:.66rem;color:var(--wn);margin-top:8px">⚠️ Restaurar substitui os dados actuais deste dispositivo pelos do ficheiro.</div>
-  </div>`;
+  </div>
+  <div class="card"><div class="ct">📦 Espaço Usado Neste Telemóvel</div><div id="espacoUsadoWrap"></div></div>`;
+  garantirLembreteBackupNoCalendario();
+  renderEspacoUsado();
+}
+
+// ── PAINEL DE ESPAÇO USADO NO TELEMÓVEL ──
+// Os navegadores costumam dar entre 5MB e 10MB de espaço por site — isto
+// ajuda a saber quando vale a pena limpar fotos de perfil antigas ou exportar
+// e depois apagar dados que já não precisa no dia-a-dia.
+function calcularEspacoUsado(){
+  const categorias={'Notas (CPA + Boletim)':0,'Perfis e Fotos':0,'Turmas/Calendário/Testes/Propinas':0,'Outros':0};
+  let total=0;
+  for(let i=0;i<localStorage.length;i++){
+    const chave=localStorage.key(i);
+    if(!chave||!chave.startsWith('cpa_'))continue;
+    const tamanho=(localStorage.getItem(chave)||'').length;
+    total+=tamanho;
+    if(chave.startsWith('cpa_db_')||chave.startsWith('cpa_bol_'))categorias['Notas (CPA + Boletim)']+=tamanho;
+    else if(chave==='cpa_profs'||chave==='cpa_adm')categorias['Perfis e Fotos']+=tamanho;
+    else if(['cpa_turmas','cpa_calendario','cpa_perguntas','cpa_propinas','cpa_freq','cpa_escola'].includes(chave))categorias['Turmas/Calendário/Testes/Propinas']+=tamanho;
+    else categorias['Outros']+=tamanho;
+  }
+  return {total,categorias};
+}
+
+function renderEspacoUsado(){
+  const el=document.getElementById('espacoUsadoWrap');
+  if(!el)return;
+  const {total,categorias}=calcularEspacoUsado();
+  const totalKB=(total/1024).toFixed(1);
+  const limiteEstimadoKB=5*1024; // estimativa comum de 5MB por site nos navegadores
+  const pct=Math.min(100,Math.round(total/1024/limiteEstimadoKB*100));
+  el.innerHTML=`
+    <div style="font-size:.8rem;font-weight:700;margin-bottom:5px">${totalKB} KB usados <span style="color:var(--mu);font-weight:400">(estimativa de ${pct}% de um limite típico de 5MB)</span></div>
+    <div class="db" style="margin-bottom:11px"><div class="df" style="width:${pct}%;background:${pct<60?'var(--ok)':pct<85?'var(--wn)':'var(--dg)'}"></div></div>
+    ${Object.entries(categorias).filter(([,v])=>v>0).map(([nome,v])=>`<div class="dr2"><div class="dl">${nome}</div><div class="db"><div class="df" style="width:${total?Math.round(v/total*100):0}%;background:var(--ac2)"></div></div><div class="dc">${(v/1024).toFixed(1)} KB</div></div>`).join('')}
+    <div style="font-size:.66rem;color:var(--mu);margin-top:8px">💡 Se estiver muito cheio, exporte a Cópia de Segurança acima e depois use "Remover" nos professores mais antigos que já não usa (Painel Administrador).</div>
+  `;
+}
+
+// Garante que existe sempre um lembrete no Calendário Escolar para o dia 1
+// do próximo mês, para não se esquecer de exportar a cópia de segurança —
+// recria-o automaticamente todos os meses.
+function garantirLembreteBackupNoCalendario(){
+  if(typeof gCalEventos!=='function'||typeof sCalEventos!=='function')return;
+  const hoje=new Date();
+  const proximoDia1=new Date(hoje.getFullYear(),hoje.getMonth()+(hoje.getDate()>1?1:0),1);
+  const dataStr=proximoDia1.toISOString().slice(0,10);
+  const eventos=gCalEventos();
+  const jaExiste=eventos.some(e=>e._lembreteBackup&&e.data===dataStr);
+  if(jaExiste)return;
+  eventos.push({
+    id:Date.now()+1, // +1 para nunca coincidir com o id do lembrete de relatório, gerado no mesmo instante
+    titulo:'💾 Exportar Cópia de Segurança do Sistema C.P.A',
+    tipo:'outro',
+    data:dataStr,
+    turma:'',
+    desc:'Lembrete automático — Menu ☰ → Cópia de Segurança → Descarregar.',
+    _lembreteBackup:true
+  });
+  sCalEventos(eventos);
 }
 
 function exportarBackupCompleto(){

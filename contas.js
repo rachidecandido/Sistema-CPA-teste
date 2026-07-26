@@ -11,17 +11,26 @@
    dispositivo, depois do primeiro login com email/senha.
    ============================================================ */
 
-// ── PAINEL ADMINISTRADOR: Criar Conta de Professor ──
+// ── PAINEL ADMINISTRADOR: Criar Conta de Professor (e do próprio Admin) ──
 function renderContasProfessores(){
   const el=document.getElementById('contasProfWrap');
   if(!el)return;
   const profs=gProfs();
-  if(!profs.length){el.innerHTML='<div class="empty">Nenhum professor registado ainda.</div>';return}
-  el.innerHTML=profs.map(p=>`
+  const adm=gAdm();
+  let html='';
+  if(adm){
+    html+=`<div class="hi" style="border-left:3px solid var(--gd,orange)">
+      <div style="flex:1;min-width:0"><div class="hn">👑 ${adm.nome} (Administrador)</div><div class="hm">${adm.email?'✅ Conta activa: '+adm.email:'⚠️ Sem conta de email ainda'}</div></div>
+      <div class="ha">${adm.email?'':`<button class="bsm bl" onclick="abrirCriarContaProfessor('admin','${adm.nome.replace(/'/g,"\\'")}')">🔑 Criar Conta</button>`}</div>
+    </div>`;
+  }
+  if(!profs.length&&!adm){el.innerHTML='<div class="empty">Nenhum perfil registado ainda.</div>';return}
+  html+=profs.map(p=>`
     <div class="hi">
       <div style="flex:1;min-width:0"><div class="hn">${p.nome}</div><div class="hm">${p.email?'✅ Conta activa: '+p.email:'⚠️ Sem conta de email ainda'}</div></div>
       <div class="ha">${p.email?'':`<button class="bsm bl" onclick="abrirCriarContaProfessor(${p.id},'${p.nome.replace(/'/g,"\\'")}')">🔑 Criar Conta</button>`}</div>
     </div>`).join('');
+  el.innerHTML=html;
 }
 
 let _perfilParaContaId=null,_perfilParaContaNome=null;
@@ -43,27 +52,31 @@ async function confirmarCriarContaProfessor(){
   erroEl.style.display='none';
   if(!email||!senha){erroEl.textContent='Preencha o email e a senha.';erroEl.style.display='block';return}
   if(senha.length<6){erroEl.textContent='A senha deve ter pelo menos 6 caracteres.';erroEl.style.display='block';return}
+  const ehAdmin=_perfilParaContaId==='admin';
   try{
     const cred=await fbAuthSecundario.createUserWithEmailAndPassword(email,senha);
     const uid=cred.user.uid;
     const profs=gProfs();
-    const perfil=profs.find(p=>p.id===_perfilParaContaId);
+    const perfil=ehAdmin?gAdm():profs.find(p=>p.id===_perfilParaContaId);
     // Usa a base de dados ligada à instância SECUNDÁRIA: é essa que está
-    // autenticada como o professor recém-criado neste preciso momento, por
+    // autenticada como o utilizador recém-criado neste preciso momento, por
     // isso é a única que tem permissão para escrever a ficha dele agora.
     const dbParaEscrita=fbDBSecundario||fbDB;
     await dbParaEscrita.collection('professores').doc(uid).set({
-      id:_perfilParaContaId,
+      id:ehAdmin?'admin':_perfilParaContaId,
       nome:_perfilParaContaNome,
       pin:perfil?.pin||'',
-      av:perfil?.av||'👨‍🏫',
-      email
+      av:perfil?.av||(ehAdmin?'👑':'👨‍🏫'),
+      email,
+      isAdm:ehAdmin
     });
     // marca localmente que este perfil já tem conta (só para mostrar no painel)
-    if(perfil){perfil.email=email;sProfs(profs);}
+    if(ehAdmin){
+      const adm=gAdm();if(adm){adm.email=email;localStorage.setItem('cpa_adm',JSON.stringify(adm));}
+    }else if(perfil){perfil.email=email;sProfs(profs);}
     await fbAuthSecundario.signOut(); // limpa a sessão da instância secundária
-    logAct('Conta de professor criada',_perfilParaContaNome+' — '+email+' (UID: '+uid+')');
-    toast('Conta criada! (UID: '+uid.slice(0,8)+'...) Informe o professor: email '+email+' e a senha definida.','success');
+    logAct('Conta criada',_perfilParaContaNome+' — '+email+' (UID: '+uid+')');
+    toast('Conta criada! (UID: '+uid.slice(0,8)+'...) Informe a senha definida.','success');
     closeModal('moContaProf');
     renderContasProfessores();
   }catch(e){
@@ -103,6 +116,14 @@ async function confirmarLoginEmailProfessor(){
       return;
     }
     const d=doc.data();
+    if(d.isAdm){
+      const adm={nome:d.nome,pin:d.pin,email:d.email};
+      localStorage.setItem('cpa_adm',JSON.stringify(adm));
+      closeModal('moLoginProf');
+      activateAdm();
+      toast('Sessão de administrador iniciada com sucesso!','success');
+      return;
+    }
     const perfil={id:d.id,nome:d.nome,pin:d.pin,av:d.av||'👨‍🏫',email:d.email};
     // Guarda também localmente, para o atalho de PIN funcionar neste dispositivo a partir de agora
     const profs=gProfs();
