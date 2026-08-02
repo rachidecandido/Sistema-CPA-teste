@@ -1,0 +1,9 @@
+{
+  "name": "cpa-enviar-notificacoes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Robô de envio de notificações push do Sistema C.P.A, executado pelo GitHub Actions.",
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}
