@@ -34,6 +34,44 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Calendário Escolar — sincronizado entre dispositivos dos professores
+    match /calendario/{eventoId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Banco de Perguntas/Testes — sincronizado entre dispositivos dos professores
+    match /perguntas/{perguntaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Propinas/Pagamentos — sincronizado entre dispositivos dos professores
+    match /propinas/{propinaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Contas de Professor (email/senha) — só o próprio dono (pelo UID de login)
+    // pode ler/escrever a sua ficha, que liga a conta ao identificador antigo
+    match /professores/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Tokens de Notificações Push — cada dispositivo regista o seu próprio
+    match /fcm_tokens/{tokenId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Fila de notificações push — a app só coloca pedidos aqui; quem envia
+    // de facto é o robô do GitHub Actions, usando a conta de serviço (que
+    // tem acesso total e ignora estas regras, por isso não precisa de auth)
+    match /push_queue/{itemId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Registos de alunos (CPA + Boletim)
     // Leitura: pública (necessária para o portal do encarregado/aluno ler pelo email/matrícula)
     // Escrita: livre (vem da app do professor, sem Firebase Auth)
@@ -48,13 +86,21 @@ service cloud.firestore {
     match /materiais/{materialId} {
       allow read: if true;
       allow write: if true;
+
+      // Pedaços ("chunks") de ficheiros grandes divididos (até 5MB no total)
+      match /chunks/{chunkId} {
+        allow read: if true;
+        allow write: if true;
+      }
     }
 
     // Notificações — só o encarregado dono (pelo email de login) pode ler/marcar como lida
+    // Nota: os emails já são gravados em minúsculas pela app (ver encarregado.js/sync.js),
+    // por isso a comparação directa "==" é suficiente e mais compatível com consultas de lista.
     match /notificacoes/{notifId} {
-      allow read: if request.auth != null && request.auth.token.email.lower() == resource.data.encEmail.lower();
+      allow read: if request.auth != null && request.auth.token.email == resource.data.encEmail;
       allow create: if true; // criadas pela app do professor
-      allow update, delete: if request.auth != null && request.auth.token.email.lower() == resource.data.encEmail.lower();
+      allow update, delete: if request.auth != null && request.auth.token.email == resource.data.encEmail;
     }
 
     // Mensagens — leitura pública dentro da conversa (simplificação),
@@ -63,7 +109,7 @@ service cloud.firestore {
     match /mensagens/{msgId} {
       allow read: if true;
       allow create: if request.resource.data.de == 'professor'
-                    || (request.auth != null && request.auth.token.email.lower() == request.resource.data.encEmail.lower());
+                    || (request.auth != null && request.auth.token.email == request.resource.data.encEmail);
       allow update, delete: if false;
     }
   }
