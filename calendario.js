@@ -63,6 +63,9 @@ async function notificarEncarregadosReuniao(titulo,data,turma,desc){
         lida:false,
         data:firebase.firestore.FieldValue.serverTimestamp()
       });
+      if(typeof enfileirarPushNotificacao==='function'){
+        enfileirarPushNotificacao(a.encEmail,'📅 Reunião — Sistema C.P.A',`"${titulo}" no dia ${dataFmt}`);
+      }
     }
     if(emailsJaAvisados.size)toast(emailsJaAvisados.size+' encarregado(s) notificado(s) da reunião.','success');
   }catch(e){console.error(e);}

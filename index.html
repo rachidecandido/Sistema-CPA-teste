@@ -20,6 +20,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="fase1.css">
 <style>
@@ -424,7 +425,7 @@ tfoot td{padding:9px;text-align:center;font-weight:800;background:var(--c2);bord
     <button class="btn bl" style="flex:1;font-size:.74rem" onclick="toggleCB()">👁 Modo Daltónico</button>
     <button class="btn bl" style="flex:1;font-size:.74rem" onclick="toggleSound()" id="btnSnd">🔇 Som Off</button>
   </div>
-  <div><button class="btn bi" style="width:100%;font-size:.74rem;margin-bottom:7px" onclick="exportCSV()">📊 Exportar CSV</button><button class="btn bl" style="width:100%;font-size:.74rem;margin-bottom:7px" onclick="gerarMeuQR()">📱 Gerar meu QR de Acesso</button><a href="encarregado.html" target="_blank" style="text-decoration:none"><button class="btn bg2" style="width:100%;font-size:.74rem">👪 Abrir Portal do Encarregado</button></a></div>
+  <div><button class="btn bi" style="width:100%;font-size:.74rem;margin-bottom:7px" onclick="exportCSV()">📊 Exportar CSV</button><button class="btn bl" style="width:100%;font-size:.74rem;margin-bottom:7px" onclick="gerarMeuQR()">📱 Gerar meu QR de Acesso</button><button class="btn bl" style="width:100%;font-size:.74rem;margin-bottom:7px" onclick="ativarNotificacoesPush(PA.id,'professor',toast,fbDB)">🔔 Activar Notificações Neste Telemóvel</button><a href="encarregado.html" target="_blank" style="text-decoration:none"><button class="btn bg2" style="width:100%;font-size:.74rem">👪 Abrir Portal do Encarregado</button></a></div>
 </div>
 <div class="card"><div class="ct">ℹ️ Sobre o App</div>
         <div class="ac2"><div style="font-size:2rem;margin-bottom:7px">🎓</div>
@@ -704,6 +705,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-work
 <script src="duplicados.js"></script>
 <script src="contas.js"></script>
 <script src="visitante.js"></script>
+<script src="push.js"></script>
 <script src="perfilfoto.js"></script>
 <script src="estatisticas.js"></script>
 <script src="extras.js"></script>

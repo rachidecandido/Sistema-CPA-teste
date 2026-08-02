@@ -310,6 +310,9 @@ async function criarNotificacaoEncarregado(email,alunoNome,texto){
       lida:false,
       data:firebase.firestore.FieldValue.serverTimestamp()
     });
+    if(typeof enfileirarPushNotificacao==='function'){
+      enfileirarPushNotificacao(email,'Sistema C.P.A — '+alunoNome,texto);
+    }
   }catch(e){console.error(e);}
 }
 
