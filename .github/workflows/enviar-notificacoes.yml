@@ -1,0 +1,31 @@
+name: Enviar Notificações Push
+
+on:
+  schedule:
+    # Corre a cada 10 minutos, 24 horas por dia
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    # Permite também executar manualmente, pelo separador "Actions" no GitHub
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Transferir o código do repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        working-directory: scripts
+        run: npm install
+
+      - name: Executar o robô de notificações
+        working-directory: scripts
+        run: node enviar-notificacoes.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          
