@@ -11,6 +11,67 @@
    dispositivo, depois do primeiro login com email/senha.
    ============================================================ */
 
+// ── ALTERAR O PRÓPRIO PIN (professor ou admin) ──
+function abrirAlterarPinProprio(){
+  document.getElementById('pinProprioAtual').value='';
+  document.getElementById('pinProprioNovo').value='';
+  document.getElementById('pinProprioErro').style.display='none';
+  document.getElementById('moPinProprio').classList.add('open');
+}
+async function confirmarAlterarPinProprio(){
+  const atual=document.getElementById('pinProprioAtual').value;
+  const novo=document.getElementById('pinProprioNovo').value;
+  const erroEl=document.getElementById('pinProprioErro');
+  erroEl.style.display='none';
+  const pinActualGuardado=isAdm?gAdm()?.pin:PA?.pin;
+  if(atual!==pinActualGuardado){erroEl.textContent='PIN actual incorrecto.';erroEl.style.display='block';return}
+  if(!/^\d{4}$/.test(novo)){erroEl.textContent='O novo PIN deve ter exactamente 4 dígitos.';erroEl.style.display='block';return}
+  if(isAdm){
+    const adm=gAdm();adm.pin=novo;localStorage.setItem('cpa_adm',JSON.stringify(adm));
+  }else{
+    const profs=gProfs();const idx=profs.findIndex(p=>p.id===PA.id);
+    if(idx>=0){profs[idx].pin=novo;sProfs(profs);PA.pin=novo;}
+  }
+  // Se tiver conta de email activa e sessão iniciada, actualiza também na nuvem
+  if(fbAuth&&fbAuth.currentUser){
+    try{await fbDB.collection('professores').doc(fbAuth.currentUser.uid).update({pin:novo});}catch(e){console.error(e);}
+  }
+  closeModal('moPinProprio');
+  logAct('PIN alterado');
+  toast('PIN alterado com sucesso!','success');
+}
+
+// ── ALTERAR A PRÓPRIA PALAVRA-PASSE (só quem tem conta de email activa) ──
+function abrirAlterarSenhaProprio(){
+  if(!fbAuth||!fbAuth.currentUser){
+    toast('Só disponível se tiver entrado com Email+Senha nesta sessão.','error');
+    return;
+  }
+  document.getElementById('senhaProprioAtual').value='';
+  document.getElementById('senhaProprioNova').value='';
+  document.getElementById('senhaProprioErro').style.display='none';
+  document.getElementById('moSenhaProprio').classList.add('open');
+}
+async function confirmarAlterarSenhaProprio(){
+  const atual=document.getElementById('senhaProprioAtual').value;
+  const nova=document.getElementById('senhaProprioNova').value;
+  const erroEl=document.getElementById('senhaProprioErro');
+  erroEl.style.display='none';
+  if(!atual||!nova){erroEl.textContent='Preencha os dois campos.';erroEl.style.display='block';return}
+  if(nova.length<6){erroEl.textContent='A nova senha deve ter pelo menos 6 caracteres.';erroEl.style.display='block';return}
+  try{
+    const user=fbAuth.currentUser;
+    const cred=firebase.auth.EmailAuthProvider.credential(user.email,atual);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(nova);
+    closeModal('moSenhaProprio');
+    toast('Palavra-passe alterada com sucesso!','success');
+  }catch(e){
+    const mapa={'auth/wrong-password':'Palavra-passe actual incorrecta.','auth/invalid-credential':'Palavra-passe actual incorrecta.'};
+    erroEl.textContent=mapa[e.code]||('Erro: '+(e.message||e.code));
+    erroEl.style.display='block';
+  }
+}
 // ── PAINEL ADMINISTRADOR: Criar Conta de Professor (e do próprio Admin) ──
 function renderContasProfessores(){
   const el=document.getElementById('contasProfWrap');

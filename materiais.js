@@ -88,6 +88,23 @@ function enviarMaterial(){
 
 // Envia um ficheiro grande dividido em vários documentos ("chunks"), já que
 // o Firestore não aceita documentos com mais de 1MB.
+// Notifica, por push, todos os alunos e encarregados vinculados da turma
+function notificarTurmaSobreMaterial(turma,titulo){
+  if(typeof enfileirarPushNotificacao!=='function'||typeof dBol==='undefined')return;
+  const alunosDaTurma=dBol.filter(b=>b.tr===turma);
+  const jaAvisados=new Set();
+  alunosDaTurma.forEach(a=>{
+    if(a.mt&&!jaAvisados.has('mt_'+a.mt)){
+      jaAvisados.add('mt_'+a.mt);
+      enfileirarPushNotificacao(a.mt,'📚 Novo Material — '+turma,titulo);
+    }
+    if(a.encEmail&&!jaAvisados.has('em_'+a.encEmail)){
+      jaAvisados.add('em_'+a.encEmail);
+      enfileirarPushNotificacao(a.encEmail,'📚 Novo Material — '+turma,titulo);
+    }
+  });
+}
+
 async function enviarMaterialComChunks(materialSemConteudo,dataUrlCompleta){
   const docRef=fbDB.collection('materiais').doc(); // gera o ID sem publicar ainda
   try{
@@ -104,6 +121,7 @@ async function enviarMaterialComChunks(materialSemConteudo,dataUrlCompleta){
     }
     await docRef.set({...materialSemConteudo,totalChunks:chunks.length});
     toast('Material enviado com sucesso!','success');
+    notificarTurmaSobreMaterial(materialSemConteudo.turma,materialSemConteudo.titulo);
     logAct('Material de apoio enviado',materialSemConteudo.titulo+' — '+materialSemConteudo.turma+' ('+chunks.length+' partes)');
     limparFormMaterial();
     carregarMateriaisProfessor();
@@ -132,6 +150,7 @@ async function salvarMaterialFirestore(material){
   try{
     await fbDB.collection('materiais').add(material);
     toast('Material enviado com sucesso!','success');
+    notificarTurmaSobreMaterial(material.turma,material.titulo);
     logAct('Material de apoio enviado',material.titulo+' — '+material.turma);
     limparFormMaterial();
     carregarMateriaisProfessor();

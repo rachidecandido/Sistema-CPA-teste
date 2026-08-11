@@ -91,9 +91,44 @@ async function carregarNotificacoes(){
     el.innerHTML=docsOrdenados.map(doc=>{
       const n=doc.data();
       const dt=n.data?.toDate?n.data.toDate().toLocaleDateString('pt-PT'):'';
-      return `<div class="notif">${n.texto}<div style="color:var(--mu);font-size:.66rem;margin-top:4px">${dt}</div></div>`;
+      return `<div class="notif" style="position:relative;padding-right:34px">${n.texto}<div style="color:var(--mu);font-size:.66rem;margin-top:4px">${dt}</div><span onclick="apagarNotificacao('${doc.id}')" style="position:absolute;top:8px;right:8px;cursor:pointer;font-size:.85rem;color:var(--mu)">✕</span></div>`;
     }).join('');
   }catch(e){el.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
+}
+
+// ── ALTERAR PALAVRA-PASSE ──
+function abrirAlterarSenha(){
+  document.getElementById('senhaAtual').value='';
+  document.getElementById('senhaNova').value='';
+  document.getElementById('senhaErro').style.display='none';
+  document.getElementById('moSenha').classList.add('open');
+}
+async function confirmarAlterarSenha(){
+  const actual=document.getElementById('senhaAtual').value;
+  const nova=document.getElementById('senhaNova').value;
+  const erroEl=document.getElementById('senhaErro');
+  erroEl.style.display='none';
+  if(!actual||!nova){erroEl.textContent='Preencha os dois campos.';erroEl.style.display='block';return}
+  if(nova.length<6){erroEl.textContent='A nova senha deve ter pelo menos 6 caracteres.';erroEl.style.display='block';return}
+  try{
+    const user=fbAuth.currentUser;
+    const cred=firebase.auth.EmailAuthProvider.credential(user.email,actual);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(nova);
+    closeModalEnc('moSenha');
+    toastEnc('Palavra-passe alterada com sucesso!','success');
+  }catch(e){
+    const mapa={'auth/wrong-password':'Palavra-passe actual incorrecta.','auth/invalid-credential':'Palavra-passe actual incorrecta.'};
+    erroEl.textContent=mapa[e.code]||('Erro: '+(e.message||e.code));
+    erroEl.style.display='block';
+  }
+}
+
+async function apagarNotificacao(id){
+  try{
+    await fbDB.collection('notificacoes').doc(id).delete();
+    carregarNotificacoes();
+  }catch(e){toastEnc('Erro ao apagar notificação.','error');console.error(e);}
 }
 
 // ── ALUNOS VINCULADOS ──
@@ -110,8 +145,28 @@ async function carregarAlunos(){
       return `<div class="alunoCard" onclick='abrirDetalheAluno(${JSON.stringify(JSON.stringify(a))},"${doc.id}")'><div class="mg2">${(a.mg||0).toFixed(1)}</div><div class="nm">${a.nm}</div><div class="meta">${[a.tr,a.cl&&a.cl+'ª Classe',a.tn,a.an,a.pd].filter(Boolean).join(' · ')}</div><span class="st ${situ}">${lb}</span></div>`;
     }).join('');
     const turmas=[...new Set(snap.docs.map(doc=>doc.data().tr).filter(Boolean))];
+    const nomesAlunos=snap.docs.map(doc=>doc.data().nm);
     carregarMateriaisEncarregado(turmas);
+    carregarPropinasEncarregado(nomesAlunos);
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar dados. Verifique a ligação à internet.</div>';console.error(e);}
+}
+
+// ── SITUAÇÃO DE PROPINAS ──
+async function carregarPropinasEncarregado(nomesAlunos){
+  const el=document.getElementById('propinasEncList');
+  if(!el)return;
+  if(!nomesAlunos.length){el.innerHTML='<div class="empty">Sem educandos vinculados.</div>';return}
+  el.innerHTML='<div class="empty">A carregar...</div>';
+  try{
+    const resultados=[];
+    for(const nome of nomesAlunos){
+      const snap=await fbDB.collection('propinas').where('alunoNome','==',nome).get();
+      snap.forEach(doc=>resultados.push(doc.data()));
+    }
+    if(!resultados.length){el.innerHTML='<div class="empty">Nenhum pagamento registado ainda.</div>';return}
+    resultados.sort((a,b)=>(b.mes||'').localeCompare(a.mes||''));
+    el.innerHTML=resultados.slice(0,12).map(p=>`<div class="notif" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3)">✅ <b>${p.alunoNome}</b> — ${p.mes} — ${p.valor} MT (${p.metodo})</div>`).join('');
+  }catch(e){el.innerHTML='<div class="empty">Erro ao carregar propinas.</div>';console.error(e);}
 }
 
 async function carregarMateriaisEncarregado(turmas){
@@ -157,7 +212,7 @@ function abrirDetalheAluno(alunoJSONStr,docId){
       <div style="font-size:.78rem;color:var(--mu);margin-top:2px">Média Global: ${(a.mg||0).toFixed(2)}</div>
     </div>
     ${rows?`<table style="width:100%;border-collapse:collapse;margin-bottom:14px"><thead><tr><th style="text-align:left;font-size:.66rem;color:var(--mu);padding:5px 4px">Disciplina</th><th style="font-size:.66rem;color:var(--mu)">1ºT</th><th style="font-size:.66rem;color:var(--mu)">2ºT</th><th style="font-size:.66rem;color:var(--mu)">3ºT</th><th style="font-size:.66rem;color:var(--mu)">Média</th></tr></thead><tbody>${rows}</tbody></table>`:''}
-    <button class="btn" onclick="abrirChatComProfessor(${a.id},'${(a.professorNome||'Professor').replace(/'/g,"\\'")}','${a.nm.replace(/'/g,"\\'")}')">💬 Falar com o Professor</button>
+    <button class="btn" onclick="abrirChatComProfessor(${a.id},'${(a.professorNome||'Professor').replace(/'/g,"\\'")}','${a.nm.replace(/'/g,"\\'")}','${a.professorId||''}')">💬 Falar com o Professor</button>
     <button class="btn sec" onclick="closeModalEnc('moDetalhe')">Fechar</button>
   `;
   document.getElementById('moDetalhe').classList.add('open');
@@ -165,9 +220,10 @@ function abrirDetalheAluno(alunoJSONStr,docId){
 function closeModalEnc(id){document.getElementById(id).classList.remove('open');}
 
 // ── MENSAGENS (Encarregado ↔ Professor) ──
-let chatAlunoId=null;
-async function abrirChatComProfessor(alunoId,profNome,alunoNome){
+let chatAlunoId=null,chatProfessorId=null;
+async function abrirChatComProfessor(alunoId,profNome,alunoNome,professorId){
   chatAlunoId=alunoId;
+  chatProfessorId=professorId;
   closeModalEnc('moDetalhe');
   document.getElementById('moChatBody').innerHTML=`
     <div style="font-weight:700;font-size:.86rem;margin-bottom:9px">💬 ${profNome} — sobre ${alunoNome}</div>
@@ -211,6 +267,9 @@ async function enviarMensagemEnc(){
     });
     document.getElementById('encMsgTxt').value='';
     carregarChatEnc();
+    if(typeof enfileirarPushNotificacao==='function'&&chatProfessorId){
+      enfileirarPushNotificacao(chatProfessorId,'💬 Nova mensagem — '+encEmailAtual,texto);
+    }
   }catch(e){toastEnc('Erro ao enviar mensagem.','error');console.error(e);}
 }
 

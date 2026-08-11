@@ -50,24 +50,29 @@ function criarEventoCal(){
 async function notificarEncarregadosReuniao(titulo,data,turma,desc){
   try{
     const dataFmt=new Date(data+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
-    const alunosDaTurma=(typeof dBol!=='undefined'?dBol:[]).filter(b=>b.tr===turma&&b.encEmail);
+    const alunosDaTurma=(typeof dBol!=='undefined'?dBol:[]).filter(b=>b.tr===turma&&(b.encEmail||b.mt));
     if(!alunosDaTurma.length)return;
-    const emailsJaAvisados=new Set();
+    const avisados=new Set();
+    let contador=0;
     for(const a of alunosDaTurma){
-      if(emailsJaAvisados.has(a.encEmail))continue;
-      emailsJaAvisados.add(a.encEmail);
+      const chave=(a.encEmail||'')+'|'+(a.mt||'');
+      if(avisados.has(chave))continue;
+      avisados.add(chave);
       await fbDB.collection('notificacoes').add({
-        encEmail:a.encEmail,
+        encEmail:a.encEmail||null,
+        alunoMt:a.mt||null,
         alunoNome:a.nm,
         texto:`📅 Reunião marcada: "${titulo}" no dia ${dataFmt}${desc?' — '+desc:''}`,
         lida:false,
         data:firebase.firestore.FieldValue.serverTimestamp()
       });
       if(typeof enfileirarPushNotificacao==='function'){
-        enfileirarPushNotificacao(a.encEmail,'📅 Reunião — Sistema C.P.A',`"${titulo}" no dia ${dataFmt}`);
+        if(a.encEmail)enfileirarPushNotificacao(a.encEmail,'📅 Reunião — Sistema C.P.A',`"${titulo}" no dia ${dataFmt}`);
+        if(a.mt)enfileirarPushNotificacao(a.mt,'📅 Reunião — Sistema C.P.A',`"${titulo}" no dia ${dataFmt}`);
       }
+      contador++;
     }
-    if(emailsJaAvisados.size)toast(emailsJaAvisados.size+' encarregado(s) notificado(s) da reunião.','success');
+    if(contador)toast(contador+' aluno(s)/encarregado(s) notificado(s) da reunião.','success');
   }catch(e){console.error(e);}
 }
 

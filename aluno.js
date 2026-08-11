@@ -53,6 +53,72 @@ function mostrarPainelAluno(){
   document.getElementById('quemEsta').textContent='🎓 '+alunoAtual.nm;
   renderNotasAluno();
   carregarMateriaisAluno();
+  carregarNotificacoesAluno();
+  carregarPropinasAluno();
+}
+
+function closeModalAl(id){document.getElementById(id).classList.remove('open')}
+
+// ── NOTIFICAÇÕES DO ALUNO ──
+async function carregarNotificacoesAluno(){
+  const el=document.getElementById('notifAlunoList');
+  if(!el)return;
+  el.innerHTML='<div class="empty">A carregar...</div>';
+  try{
+    const snap=await fbDB.collection('notificacoes').where('alunoMt','==',alunoAtual.mt).limit(50).get();
+    if(snap.empty){el.innerHTML='<div class="empty">Sem notificações.</div>';return}
+    const docsOrdenados=snap.docs.sort((a,b)=>(b.data().data?.seconds||0)-(a.data().data?.seconds||0)).slice(0,20);
+    el.innerHTML=docsOrdenados.map(doc=>{
+      const n=doc.data();
+      const dt=n.data?.toDate?n.data.toDate().toLocaleDateString('pt-PT'):'';
+      return `<div class="notif" style="position:relative;padding-right:34px">${n.texto}<div style="color:var(--mu);font-size:.66rem;margin-top:4px">${dt}</div><span onclick="apagarNotificacaoAluno('${doc.id}')" style="position:absolute;top:8px;right:8px;cursor:pointer;font-size:.85rem;color:var(--mu)">✕</span></div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="empty">Erro: '+(e.message||e.code||'falha desconhecida')+'</div>';console.error(e);}
+}
+async function apagarNotificacaoAluno(id){
+  try{
+    await fbDB.collection('notificacoes').doc(id).delete();
+    carregarNotificacoesAluno();
+  }catch(e){toastAl('Erro ao apagar notificação.','error');console.error(e);}
+}
+
+// ── SITUAÇÃO DE PROPINAS DO ALUNO ──
+async function carregarPropinasAluno(){
+  const el=document.getElementById('propinasAlunoList');
+  if(!el)return;
+  el.innerHTML='<div class="empty">A carregar...</div>';
+  try{
+    const snap=await fbDB.collection('propinas').where('alunoNome','==',alunoAtual.nm).get();
+    if(snap.empty){el.innerHTML='<div class="empty">Nenhum pagamento registado ainda.</div>';return}
+    const resultados=snap.docs.map(d=>d.data()).sort((a,b)=>(b.mes||'').localeCompare(a.mes||''));
+    el.innerHTML=resultados.slice(0,12).map(p=>`<div class="notif" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3)">✅ ${p.mes} — ${p.valor} MT (${p.metodo})</div>`).join('');
+  }catch(e){el.innerHTML='<div class="empty">Erro ao carregar propinas.</div>';console.error(e);}
+}
+
+// ── ALTERAR PIN ──
+function abrirAlterarPin(){
+  document.getElementById('pinAtual').value='';
+  document.getElementById('pinNovo').value='';
+  document.getElementById('pinErro').style.display='none';
+  document.getElementById('moPin').classList.add('open');
+}
+async function confirmarAlterarPin(){
+  const atual=document.getElementById('pinAtual').value;
+  const novo=document.getElementById('pinNovo').value;
+  const erroEl=document.getElementById('pinErro');
+  erroEl.style.display='none';
+  if(atual!==alunoAtual.alunoPin){erroEl.textContent='PIN actual incorrecto.';erroEl.style.display='block';return}
+  if(!/^\d{4}$/.test(novo)){erroEl.textContent='O novo PIN deve ter exactamente 4 dígitos.';erroEl.style.display='block';return}
+  try{
+    await fbDB.collection('alunos').doc(alunoAtual.id).update({alunoPin:novo});
+    alunoAtual.alunoPin=novo;
+    sessionStorage.setItem('cpa_aluno_sessao',JSON.stringify(alunoAtual));
+    closeModalAl('moPin');
+    toastAl('PIN alterado com sucesso!','success');
+  }catch(e){
+    erroEl.textContent='Erro: '+(e.message||e.code);
+    erroEl.style.display='block';
+  }
 }
 
 function renderNotasAluno(){

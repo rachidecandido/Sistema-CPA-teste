@@ -55,7 +55,7 @@ async function syncAlunoToFirebase(entry,tipo){
     marcarSyncUI('ok');
     // se for boletim e o aluno reprovou, cria notificação para o encarregado (se vinculado)
     if(tipo==='bol'&&entry.apv===false&&entry.encEmail){
-      await criarNotificacaoEncarregado(entry.encEmail,entry.nm,`⚠️ ${entry.nm} obteve média ${entry.mg?.toFixed(1)} e está em situação de REPROVADO no período ${entry.pd||''}.`);
+      await criarNotificacaoEncarregado(entry.encEmail,entry.nm,`⚠️ ${entry.nm} obteve média ${entry.mg?.toFixed(1)} e está em situação de REPROVADO no período ${entry.pd||''}.`,entry.mt);
     }
   }catch(e){
     console.error(e);
@@ -301,17 +301,19 @@ function definirAcessoAluno(alunoId,matricula,pin){
   toast('Acesso do aluno activado! Ele já pode entrar no Portal do Aluno.','success');
 }
 
-async function criarNotificacaoEncarregado(email,alunoNome,texto){
+async function criarNotificacaoEncarregado(email,alunoNome,texto,alunoMt){
   try{
     await fbDB.collection('notificacoes').add({
       encEmail:email,
       alunoNome,
+      alunoMt:alunoMt||null,
       texto,
       lida:false,
       data:firebase.firestore.FieldValue.serverTimestamp()
     });
     if(typeof enfileirarPushNotificacao==='function'){
-      enfileirarPushNotificacao(email,'Sistema C.P.A — '+alunoNome,texto);
+      if(email)enfileirarPushNotificacao(email,'Sistema C.P.A — '+alunoNome,texto);
+      if(alunoMt)enfileirarPushNotificacao(alunoMt,'Sistema C.P.A',texto);
     }
   }catch(e){console.error(e);}
 }
@@ -371,5 +373,8 @@ async function enviarMensagemProf(){
     });
     document.getElementById('msgTexto').value='';
     carregarConversa(convAlunoIdAtual);
+    if(typeof enfileirarPushNotificacao==='function'&&convEncEmailAtual){
+      enfileirarPushNotificacao(convEncEmailAtual,'💬 Nova mensagem — '+(PA?.nome||'Professor'),texto);
+    }
   }catch(e){toast('Erro ao enviar mensagem.','error');console.error(e);}
 }
