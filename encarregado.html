@@ -73,14 +73,25 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 
   <!-- ÁREA LOGADA -->
   <div id="appArea">
-    <div class="topbar"><span class="who" id="quemEsta"></span><div><a href="#" onclick="abrirAlterarSenha();return false" style="color:var(--mu);font-size:.7rem;text-decoration:none;margin-right:12px">🔑 Senha</a><a href="portal.html?trocar=1" style="color:var(--mu);font-size:.7rem;text-decoration:none;margin-right:12px">🔄 Trocar</a><button class="sair" onclick="sairConta()">Sair</button></div></div>
-    <button class="btn sec" style="margin-bottom:12px" onclick="ativarNotificacoesPush(encEmailAtual,'encarregado',toastEnc,fbDB)">🔔 Activar Notificações Neste Telemóvel</button>
-    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">⚠️ Notificações</div><div id="notifList"></div></div>
-    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">🎓 Meus Educandos</div><div id="alunosList"></div></div>
-    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📚 Materiais de Apoio</div><div id="matEncList"></div></div>
-    <div class="card"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">💵 Situação de Propinas</div><div id="propinasEncList"></div></div>
+    <div class="topbar"><span class="who" id="quemEsta"></span><button class="sair" style="color:var(--tx);font-size:1.1rem" onclick="document.getElementById('moMenuEnc').classList.add('open')">☰</button></div>
+    <div class="card" id="secNotifEnc"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">⚠️ Notificações</div><div id="notifList"></div></div>
+    <div class="card" id="secEducandos"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">🎓 Meus Educandos</div><div id="alunosList"></div></div>
+    <div class="card" id="secMateriaisEnc"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📚 Materiais de Apoio</div><div id="matEncList"></div></div>
+    <div class="card" id="secPropinasEnc"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">💵 Situação de Propinas</div><div id="propinasEncList"></div></div>
   </div>
 </div>
+
+<div class="mo" id="moMenuEnc"><div class="md">
+  <div style="font-weight:800;font-size:.95rem;margin-bottom:11px">☰ Menu</div>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalEnc('moMenuEnc');document.getElementById('secNotifEnc').scrollIntoView({behavior:'smooth'})">⚠️ Notificações</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalEnc('moMenuEnc');document.getElementById('secEducandos').scrollIntoView({behavior:'smooth'})">🎓 Meus Educandos / Falar com o Professor</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalEnc('moMenuEnc');document.getElementById('secMateriaisEnc').scrollIntoView({behavior:'smooth'})">📚 Materiais de Apoio</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalEnc('moMenuEnc');document.getElementById('secPropinasEnc').scrollIntoView({behavior:'smooth'})">💵 Situação de Propinas</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalEnc('moMenuEnc');ativarNotificacoesPush(encEmailAtual,'encarregado',toastEnc,fbDB)">🔔 Activar Notificações no Telemóvel</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalEnc('moMenuEnc');abrirAlterarSenha()">🔑 Alterar a minha Senha</button>
+  <button class="btn" style="margin-bottom:8px;background:rgba(239,68,68,.15);color:#ef4444" onclick="sairConta()">🚪 Sair</button>
+  <button class="btn sec" onclick="closeModalEnc('moMenuEnc')">Fechar</button>
+</div></div>
 
 <div class="mo" id="moDetalhe"><div class="md" id="moDetalheBody"></div></div>
 <div class="mo" id="moChat"><div class="md" id="moChatBody"></div></div>
