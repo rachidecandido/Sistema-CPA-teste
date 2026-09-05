@@ -24,11 +24,15 @@ function renderFrequencia(){
     <button class="btn bs" style="width:100%;margin-top:9px" onclick="salvarFrequencia()">💾 Guardar Presença do Dia</button>
   </div>
   <div class="card"><div class="ct">📊 Mapa de Assiduidade</div>
-    <div class="fl">Turma</div><select class="fi" id="frTurmaMapa" onchange="renderMapaAssiduidade()" style="margin-bottom:9px"><option value="">— Seleccione —</option>${opts}</select>
+    <div class="fr">
+      <div><div class="fl">Turma</div><select class="fi" id="frTurmaMapa" onchange="renderMapaAssiduidade()"><option value="">— Seleccione —</option>${opts}</select></div>
+      <div><div class="fl">Mês</div><input class="fi" id="frMesMapa" type="month" onchange="renderMapaAssiduidade()"></div>
+    </div>
     <div id="mapaAssidWrap"></div>
-    <button class="btn bp" style="width:100%;margin-top:9px" onclick="pdfFrequencia()">📄 Exportar PDF</button>
+    <button class="btn bp" style="width:100%;margin-top:9px" onclick="pdfFrequencia()">📄 Exportar PDF deste Mês</button>
   </div>`;
   document.getElementById('frData').valueAsDate=new Date();
+  document.getElementById('frMesMapa').value=new Date().toISOString().slice(0,7);
   buildFreqTable();
 }
 
@@ -71,8 +75,8 @@ function salvarFrequencia(){
   renderMapaAssiduidade();
 }
 
-function calcAssiduidade(turma){
-  const registos=gFreq().filter(r=>r.turma===turma);
+function calcAssiduidade(turma,mesRef){
+  const registos=gFreq().filter(r=>r.turma===turma&&(!mesRef||r.data.slice(0,7)===mesRef));
   const alunos=[...new Set(dBol.filter(b=>b.tr===turma).map(b=>b.nm))];
   return alunos.map(nm=>{
     let presencas=0,total=0;
@@ -86,18 +90,21 @@ function renderMapaAssiduidade(){
   const wrap=document.getElementById('mapaAssidWrap');
   if(!wrap)return;
   const turma=document.getElementById('frTurmaMapa').value;
+  const mesRef=document.getElementById('frMesMapa').value;
   if(!turma){wrap.innerHTML='<div class="empty">Seleccione uma turma.</div>';return}
-  const dados=calcAssiduidade(turma);
-  if(!dados.length){wrap.innerHTML='<div class="empty">Sem registos de presença ainda para esta turma.</div>';return}
+  const dados=calcAssiduidade(turma,mesRef);
+  if(!dados.some(d=>d.total>0)){wrap.innerHTML='<div class="empty">Sem registos de presença para este mês nesta turma.</div>';return}
   wrap.innerHTML=dados.map(d=>`<div class="dr2"><div class="dl">${d.nm}</div><div class="db"><div class="df" style="width:${d.pct}%;background:${d.pct>=75?'var(--ok)':d.pct>=50?'var(--wn)':'var(--dg)'}"></div></div><div class="dc">${d.pct}% (${d.faltas} falta${d.faltas!==1?'s':''})</div></div>`).join('');
 }
 
 function pdfFrequencia(){
   const turma=document.getElementById('frTurmaMapa').value;
+  const mesRef=document.getElementById('frMesMapa').value;
   if(!turma){toast('Seleccione uma turma!','error');return}
-  const dados=calcAssiduidade(turma);
-  if(!dados.length){toast('Sem dados de presença para esta turma!','error');return}
+  const dados=calcAssiduidade(turma,mesRef);
+  if(!dados.some(d=>d.total>0)){toast('Sem dados de presença para esta turma neste mês!','error');return}
   if(!bibliotecaPDFDisponivel())return;
+  const nomeMes=mesRef?new Date(mesRef+'-01T00:00:00').toLocaleDateString('pt-PT',{month:'long',year:'numeric'}):'—';
   const {jsPDF}=window.jspdf,doc=new jsPDF(),c=[0,201,167];
   doc.setFillColor(...c);doc.rect(0,0,210,16,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(12);doc.setFont(undefined,'bold');
@@ -105,7 +112,7 @@ function pdfFrequencia(){
   doc.setTextColor(0);
   let y=typeof escolaPdfHeader==='function'?escolaPdfHeader(doc,27):27;
   doc.setFontSize(10);doc.setFont(undefined,'normal');
-  doc.text(`Turma: ${turma}  |  Data de emissão: ${new Date().toLocaleDateString('pt-PT')}`,20,y+3);
+  doc.text(`Turma: ${turma}  |  Mês: ${nomeMes}  |  Data de emissão: ${new Date().toLocaleDateString('pt-PT')}`,20,y+3);
   doc.autoTable({
     startY:y+10,
     head:[['Aluno','Presenças','Faltas','Total de Dias','% Assiduidade']],
