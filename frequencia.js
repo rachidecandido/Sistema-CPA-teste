@@ -42,7 +42,7 @@ function buildFreqTable(){
   const turma=document.getElementById('frTurma').value;
   const data=document.getElementById('frData').value;
   if(!turma){wrap.innerHTML='<div class="empty">Seleccione uma turma.</div>';return}
-  const alunos=dBol.filter(b=>b.tr===turma);
+  const alunos=dBol.filter(b=>b.tr===turma).sort((a,b)=>a.nm.localeCompare(b.nm,'pt',{sensitivity:'base'}));
   if(!alunos.length){wrap.innerHTML='<div class="empty">Nenhum aluno guardado nesta turma ainda (lance primeiro no Boletim ou Pauta).</div>';return}
   const registo=gFreq().find(r=>r.turma===turma&&r.data===data);
   wrap.innerHTML=alunos.map(a=>{
@@ -77,7 +77,7 @@ function salvarFrequencia(){
 
 function calcAssiduidade(turma,mesRef){
   const registos=gFreq().filter(r=>r.turma===turma&&(!mesRef||r.data.slice(0,7)===mesRef));
-  const alunos=[...new Set(dBol.filter(b=>b.tr===turma).map(b=>b.nm))];
+  const alunos=[...new Set(dBol.filter(b=>b.tr===turma).map(b=>b.nm))].sort((a,b)=>a.localeCompare(b,'pt',{sensitivity:'base'}));
   return alunos.map(nm=>{
     let presencas=0,total=0;
     registos.forEach(r=>{total++;if(r.presencas[nm]!==false)presencas++;});

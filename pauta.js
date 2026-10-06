@@ -32,7 +32,7 @@ function renderPauta(){
     </div>
     <div style="font-size:.68rem;color:var(--mu);margin-bottom:7px">🎤 Toque num campo de nota e depois no botão de microfone para ditar o valor por voz.</div>
     <div id="ptTableWrap"></div>
-    <div class="bg" style="margin-top:9px"><button class="btn bs" onclick="salvarPauta()">💾 Guardar Pauta Completa</button><button class="btn bp" onclick="pdfPauta()">📄 PDF Oficial</button><button class="btn bl" onclick="exportarPautaExcel()">📊 Excel</button><button class="btn bl" onclick="ditarNotaPauta()">🎤 Ditar Nota</button></div>
+    <div class="bg" style="margin-top:9px"><button class="btn bs" onclick="salvarPauta()">💾 Guardar Pauta Completa</button><button class="btn bp" onclick="pdfPauta()">📄 PDF Oficial</button><button class="btn bl" onclick="exportarPautaExcel()">📊 Excel</button><button class="btn bl" onclick="ditarNotaPauta()">🎤 Ditar Nota</button><button class="btn bl" onclick="pdfListaAlunos()">📋 Lista de Alunos (sem notas)</button></div>
   </div>
 
   <div class="card"><div class="ct">📈 Aproveitamento da Turma</div><div id="ptAprov"></div></div>
@@ -47,7 +47,7 @@ function renderPauta(){
 function pautaAlunos(){
   const turma=document.getElementById('ptTurma')?.value||'';
   if(!turma)return [];
-  return dBol.filter(b=>b.tr===turma);
+  return dBol.filter(b=>b.tr===turma).sort((a,b)=>a.nm.localeCompare(b.nm,'pt',{sensitivity:'base'}));
 }
 
 // Devolve as disciplinas da turma: se o professor definiu uma lista própria em
@@ -95,7 +95,7 @@ function exportarPautaExcel(){
   const turma=document.getElementById('ptTurma').value;
   const classe=document.getElementById('ptClasse').value;
   if(!turma){toast('Seleccione uma turma!','error');return}
-  const alunos=dBol.filter(b=>b.tr===turma);
+  const alunos=dBol.filter(b=>b.tr===turma).sort((a,b)=>a.nm.localeCompare(b.nm,'pt',{sensitivity:'base'}));
   if(!alunos.length){toast('Sem alunos guardados nesta turma!','error');return}
   if(typeof XLSX==='undefined'){bibliotecaExcelDisponivel();return}
   const disc=disciplinasDaTurma(turma,classe);
@@ -112,6 +112,38 @@ function exportarPautaExcel(){
   XLSX.writeFile(wb,`pauta_${turma.replace(/\s+/g,'_')}.xlsx`);
   toast('Excel gerado com sucesso!','success');
   logAct('Pauta exportada em Excel',turma);
+}
+
+// ── LISTA DE ALUNOS SEM NOTAS (folha de presença/chamada, simples) ──
+function pdfListaAlunos(){
+  const turma=document.getElementById('ptTurma').value;
+  const classe=document.getElementById('ptClasse').value;
+  if(!turma){toast('Seleccione uma turma!','error');return}
+  const alunos=dBol.filter(b=>b.tr===turma).sort((a,b)=>a.nm.localeCompare(b.nm,'pt',{sensitivity:'base'}));
+  if(!alunos.length){toast('Sem alunos guardados nesta turma!','error');return}
+  if(!bibliotecaPDFDisponivel())return;
+  const {jsPDF}=window.jspdf,doc=new jsPDF(),c=[0,201,167];
+  doc.setFillColor(...c);doc.rect(0,0,210,16,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(12);doc.setFont(undefined,'bold');
+  doc.text('LISTA DE ALUNOS',105,10.5,{align:'center'});
+  doc.setTextColor(0);
+  let y=typeof escolaPdfHeader==='function'?escolaPdfHeader(doc,27):27;
+  doc.setFontSize(10);doc.setFont(undefined,'normal');
+  doc.text(`Turma: ${turma}  |  Classe: ${classe||'—'}  |  Total: ${alunos.length} alunos  |  Data: ${new Date().toLocaleDateString('pt-PT')}`,20,y+3);
+  doc.autoTable({
+    startY:y+10,
+    head:[['Nº','Nome','Matrícula']],
+    body:alunos.map((a,i)=>[i+1,a.nm,a.mt||'—']),
+    headStyles:{fillColor:c},
+    styles:{fontSize:9},
+    columnStyles:{1:{halign:'left'}}
+  });
+  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,doc.lastAutoTable.finalY+18);
+  doc.setFontSize(8);doc.setTextColor(150);
+  doc.text('© 2026 C.A.C.T — Sistema C.P.A',105,290,{align:'center'});
+  window.open(URL.createObjectURL(doc.output('blob')),'_blank');
+  toast('Lista de alunos gerada!','success');
+  logAct('Lista de alunos gerada (sem notas)',turma);
 }
 
 // ── DITAR NOTA POR VOZ ──
@@ -194,7 +226,7 @@ function renderAproveitamentoTurma(){
   // mantido por compatibilidade; a versão activa está dentro de renderPauta via ptAprov
 }
 function calcAproveitamento(turma){
-  const alunos=dBol.filter(b=>b.tr===turma);
+  const alunos=dBol.filter(b=>b.tr===turma).sort((a,b)=>a.nm.localeCompare(b.nm,'pt',{sensitivity:'base'}));
   if(!alunos.length)return null;
   const totalApv=alunos.filter(a=>a.apv).length;
   const percGeral=Math.round(totalApv/alunos.length*100);
@@ -269,7 +301,7 @@ function pdfPauta(){
   const classe=document.getElementById('ptClasse').value;
   const trim=document.getElementById('ptTrim').value;
   if(!turma){toast('Seleccione uma turma!','error');return}
-  const alunos=dBol.filter(b=>b.tr===turma);
+  const alunos=dBol.filter(b=>b.tr===turma).sort((a,b)=>a.nm.localeCompare(b.nm,'pt',{sensitivity:'base'}));
   if(!alunos.length){toast('Sem alunos guardados nesta turma!','error');return}
   const disc=disciplinasDaTurma(turma,classe);
   if(!bibliotecaPDFDisponivel())return;
