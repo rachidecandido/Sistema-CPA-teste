@@ -134,3 +134,54 @@ function pdfFrequencia(){
   window.open(URL.createObjectURL(doc.output('blob')),'_blank');
   toast('PDF de frequência gerado!','success');
 }
+
+/* ============================================================
+   SINCRONIZAÇÃO NA NUVEM (Firestore, colecção "frequencia")
+   Permite que o Portal do Aluno/Encarregado mostre a assiduidade
+   e que a frequência acompanhe o professor entre dispositivos.
+   ============================================================ */
+function freqDocId(turma,data){
+  return `${PA.id}_${String(turma).replace(/[^A-Za-z0-9]/g,'_')}_${data}`;
+}
+async function syncFrequenciaFirebase(registo){
+  if(typeof fbDB==='undefined'||!fbDB||!PA)return;
+  try{
+    await fbDB.collection('frequencia').doc(freqDocId(registo.turma,registo.data)).set({
+      professorId:PA.id,
+      turma:registo.turma,
+      data:registo.data,
+      lista:Object.keys(registo.presencas).map(nm=>({nm,p:registo.presencas[nm]!==false})),
+      updatedAt:Date.now()
+    });
+  }catch(e){console.error(e);}
+}
+async function pullFrequenciaFirebase(){
+  if(typeof fbDB==='undefined'||!fbDB||!PA)return;
+  try{
+    const snap=await fbDB.collection('frequencia').where('professorId','==',PA.id).get();
+    const freq=gFreq();
+    const remotos=new Set();
+    snap.forEach(doc=>{
+      const d=doc.data();
+      remotos.add(d.turma+'|'+d.data);
+      if(freq.some(r=>r.turma===d.turma&&r.data===d.data))return; // o local manda
+      const presencas={};
+      (d.lista||[]).forEach(x=>presencas[x.nm]=x.p);
+      freq.push({turma:d.turma,data:d.data,presencas});
+    });
+    sFreq(freq);
+    // envia para a nuvem os registos antigos que ainda só existem neste dispositivo
+    freq.filter(r=>!remotos.has(r.turma+'|'+r.data)).forEach(r=>syncFrequenciaFirebase(r));
+  }catch(e){console.error(e);}
+}
+const _origSalvarFrequencia=salvarFrequencia;
+salvarFrequencia=function(){
+  const turma=document.getElementById('frTurma').value;
+  const data=document.getElementById('frData').value;
+  _origSalvarFrequencia();
+  if(!turma||!data)return;
+  const r=gFreq().find(x=>x.turma===turma&&x.data===data);
+  if(r)syncFrequenciaFirebase(r);
+};
+const _origActivateProfFreq=activateProf;
+activateProf=function(prof){_origActivateProfFreq(prof);pullFrequenciaFirebase();};

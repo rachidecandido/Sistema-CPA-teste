@@ -104,6 +104,41 @@ async function pullAlunosFromFirebase(){
   }
 }
 
+
+// ── ELIMINAÇÕES: apagam também na nuvem (senão os registos "ressuscitam") ──
+async function apagarAlunosFirebase(tipo,ids){
+  if(!PA||!fbDB)return;
+  try{
+    for(let i=0;i<ids.length;i+=400){
+      const batch=fbDB.batch();
+      ids.slice(i,i+400).forEach(id=>batch.delete(fbDB.collection('alunos').doc(`${PA.id}_${tipo}_${id}`)));
+      await batch.commit();
+    }
+  }catch(e){console.error(e);}
+}
+async function apagarAlunosFirebaseDoProf(profId){
+  if(!fbDB)return;
+  try{
+    const snap=await fbDB.collection('alunos').where('professorId','==',profId).get();
+    for(let i=0;i<snap.docs.length;i+=400){
+      const batch=fbDB.batch();
+      snap.docs.slice(i,i+400).forEach(d=>batch.delete(d.ref));
+      await batch.commit();
+    }
+  }catch(e){console.error(e);}
+}
+async function apagarRemovidosFirebase(colecao,antes,depois){
+  if(!fbDB)return;
+  const mantidos=new Set(depois.map(x=>String(x.id)));
+  const removidos=antes.map(x=>String(x.id)).filter(id=>!mantidos.has(id));
+  if(!removidos.length)return;
+  try{
+    const batch=fbDB.batch();
+    removidos.forEach(id=>batch.delete(fbDB.collection(colecao).doc(id)));
+    await batch.commit();
+  }catch(e){console.error(e);}
+}
+
 // ── LIGA A SINCRONIZAÇÃO AUTOMÁTICA AOS PONTOS DE GRAVAÇÃO EXISTENTES ──
 const _origSaveDB=saveDB;
 saveDB=function(){
@@ -172,7 +207,7 @@ async function pullTurmasFirebase(){
 }
 const _origSTurmas=typeof sTurmas==='function'?sTurmas:null;
 if(_origSTurmas){
-  sTurmas=function(t){_origSTurmas(t);syncTurmasFirebase();};
+  sTurmas=function(t){const _antes=gTurmas();_origSTurmas(t);apagarRemovidosFirebase('turmas',_antes,t);syncTurmasFirebase();};
 }
 
 // ── CALENDÁRIO ESCOLAR (sincronizado entre dispositivos) ──
@@ -201,7 +236,7 @@ async function pullCalendarioFirebase(){
 }
 const _origSCalEventos=typeof sCalEventos==='function'?sCalEventos:null;
 if(_origSCalEventos){
-  sCalEventos=function(e){_origSCalEventos(e);syncCalendarioFirebase();};
+  sCalEventos=function(e){const _antes=gCalEventos();_origSCalEventos(e);apagarRemovidosFirebase('calendario',_antes,e);syncCalendarioFirebase();};
 }
 
 // ── BANCO DE PERGUNTAS/TESTES (sincronizado entre dispositivos) ──
@@ -230,7 +265,7 @@ async function pullPerguntasFirebase(){
 }
 const _origSPerguntas=typeof sPerguntas==='function'?sPerguntas:null;
 if(_origSPerguntas){
-  sPerguntas=function(p){_origSPerguntas(p);syncPerguntasFirebase();};
+  sPerguntas=function(p){const _antes=gPerguntas();_origSPerguntas(p);apagarRemovidosFirebase('perguntas',_antes,p);syncPerguntasFirebase();};
 }
 
 // ── PROPINAS/PAGAMENTOS (sincronizados entre dispositivos) ──
@@ -259,7 +294,7 @@ async function pullPropinasFirebase(){
 }
 const _origSPropinas=typeof sPropinas==='function'?sPropinas:null;
 if(_origSPropinas){
-  sPropinas=function(p){_origSPropinas(p);syncPropinasFirebase();};
+  sPropinas=function(p){const _antes=gPropinas();_origSPropinas(p);apagarRemovidosFirebase('propinas',_antes,p);syncPropinasFirebase();};
 }
 
 // Puxa Turmas, Calendário, Perguntas e Propinas assim que o professor ou admin entra

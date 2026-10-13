@@ -148,6 +148,7 @@ async function carregarAlunos(){
     const nomesAlunos=snap.docs.map(doc=>doc.data().nm);
     carregarMateriaisEncarregado(turmas);
     carregarPropinasEncarregado(nomesAlunos);
+    carregarAssiduidadeEncarregado(snap.docs.map(doc=>doc.data()));
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar dados. Verifique a ligação à internet.</div>';console.error(e);}
 }
 
@@ -294,4 +295,44 @@ async function baixarMaterialChunked(materialId,nomeArquivo,elClicado){
     toastEnc('Erro ao descarregar o ficheiro.','error');
     elClicado.textContent=textoOriginal;
   }
+}
+
+// ── ASSIDUIDADE (por mês) ──
+function resumoAssiduidade(registos,nome){
+  const meses={};
+  registos.forEach(r=>{
+    const e=(r.lista||[]).find(x=>x.nm===nome);
+    if(!e)return;
+    const m=(r.data||'').slice(0,7);
+    if(!meses[m])meses[m]={p:0,f:0};
+    if(e.p)meses[m].p++;else meses[m].f++;
+  });
+  return Object.keys(meses).sort().reverse().map(m=>{
+    const t=meses[m].p+meses[m].f;
+    return {mes:m,p:meses[m].p,f:meses[m].f,pct:Math.round(meses[m].p/t*100)};
+  });
+}
+function htmlAssiduidade(linhas){
+  const nomeMes=m=>new Date(m+'-01T00:00:00').toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
+  return linhas.map(l=>{
+    const cor=l.pct>=75?'#10b981':l.pct>=50?'#f59e0b':'#ef4444';
+    return `<div class="notif" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1)"><div style="display:flex;justify-content:space-between;font-weight:700"><span style="text-transform:capitalize">${nomeMes(l.mes)}</span><span style="color:${cor}">${l.pct}%</span></div><div style="height:6px;background:rgba(255,255,255,.08);border-radius:4px;margin:6px 0"><div style="height:100%;width:${l.pct}%;background:${cor};border-radius:4px"></div></div><div style="font-size:.7rem;color:var(--mu)">${l.p} presença${l.p!==1?'s':''} · ${l.f} falta${l.f!==1?'s':''}</div></div>`;
+  }).join('');
+}
+
+async function carregarAssiduidadeEncarregado(alunos){
+  const el=document.getElementById('assidEncList');
+  if(!el)return;
+  if(!alunos.length){el.innerHTML='<div class="empty">Sem educandos vinculados.</div>';return}
+  el.innerHTML='<div class="empty">A carregar...</div>';
+  try{
+    let html='';
+    for(const a of alunos){
+      if(!a.tr)continue;
+      const snap=await fbDB.collection('frequencia').where('turma','==',a.tr).get();
+      const linhas=resumoAssiduidade(snap.docs.map(d=>d.data()),a.nm);
+      html+=`<div style="font-weight:700;font-size:.8rem;margin:6px 0">${a.nm}</div>`+(linhas.length?htmlAssiduidade(linhas):'<div class="empty">Ainda sem registos de presença.</div>');
+    }
+    el.innerHTML=html||'<div class="empty">Sem turma associada.</div>';
+  }catch(err){el.innerHTML='<div class="empty">Erro ao carregar assiduidade.</div>';console.error(err);}
 }
