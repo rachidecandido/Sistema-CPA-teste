@@ -54,8 +54,10 @@ async function syncAlunoToFirebase(entry,tipo){
     entry._syncedAt=Date.now();
     marcarSyncUI('ok');
     // se for boletim e o aluno reprovou, cria notificação para o encarregado (se vinculado)
-    if(tipo==='bol'&&entry.apv===false&&entry.encEmail){
-      await criarNotificacaoEncarregado(entry.encEmail,entry.nm,`⚠️ ${entry.nm} obteve média ${entry.mg?.toFixed(1)} e está em situação de REPROVADO no período ${entry.pd||''}.`,entry.mt);
+    // Aviso de reprovação: UMA vez por mês por aluno, e some ao fim de 7 dias.
+    if(tipo==='bol'&&entry.apv===false&&(entry.encEmail||entry.mt)){
+      const mesRef=new Date().toISOString().slice(0,7);
+      await criarNotificacaoEncarregado(entry.encEmail,entry.nm,`⚠️ ${entry.nm} obteve média ${entry.mg?.toFixed(1)} e está em situação de REPROVADO no período ${entry.pd||''}.`,entry.mt,{idFixo:`reprov_${PA.id}_${entry.id}_${mesRef}`,expiraDias:7});
     }
   }catch(e){
     console.error(e);
@@ -164,12 +166,30 @@ async function syncPautaFirebase(alunosArray){
 
 // ── ESCOLA (dados partilhados entre todos os professores) ──
 async function syncEscolaFirebase(escola){
-  try{await fbDB.collection('config').doc('escola').set(escola,{merge:true});}catch(e){console.error(e);}
+  try{
+    // O Firestore aceita no máximo ~1MB por documento: reduz o logótipo se for grande
+    if(escola.logo&&escola.logo.length>600000&&typeof comprimirLogoEscola==='function'){
+      escola={...escola,logo:await comprimirLogoEscola(escola.logo)};
+      sEscola(escola);
+    }
+    await fbDB.collection('config').doc('escola').set(escola,{merge:true});
+  }catch(e){console.error(e);}
 }
 async function pullEscolaFirebase(){
   try{
     const doc=await fbDB.collection('config').doc('escola').get();
-    if(doc.exists){sEscola(doc.data());if(typeof renderEscola==='function')renderEscola();}
+    const local=gEscola();
+    if(doc.exists){
+      const remota=doc.data();
+      // o logótipo local mantém-se se a versão da nuvem não tiver um
+      const fusao={...(local||{}),...remota};
+      if(!remota.logo&&local&&local.logo)fusao.logo=local.logo;
+      sEscola(fusao);
+      if(!remota.logo&&fusao.logo)syncEscolaFirebase(fusao);
+      if(typeof renderEscola==='function'&&document.getElementById('sec-escola')&&document.getElementById('sec-escola').classList.contains('active'))renderEscola();
+    }else if(local&&local.nome){
+      syncEscolaFirebase(local); // primeira vez: sobe os dados deste dispositivo
+    }
   }catch(e){console.error(e);}
 }
 const _origSalvarEscola=typeof salvarEscola==='function'?salvarEscola:null;
@@ -299,9 +319,9 @@ if(_origSPropinas){
 
 // Puxa Turmas, Calendário, Perguntas e Propinas assim que o professor ou admin entra
 const _origActivateProf6=activateProf;
-activateProf=function(prof){_origActivateProf6(prof);pullPropinasFirebase();};
+activateProf=function(prof){_origActivateProf6(prof);pullPropinasFirebase();pullEscolaFirebase();};
 const _origActivateAdm5=activateAdm;
-activateAdm=function(){_origActivateAdm5();pullPropinasFirebase();};
+activateAdm=function(){_origActivateAdm5();pullPropinasFirebase();pullEscolaFirebase();};
 
 // Puxa Turmas, Calendário e Perguntas assim que o professor ou admin entra
 const _origActivateProf5=activateProf;
@@ -336,21 +356,33 @@ function definirAcessoAluno(alunoId,matricula,pin){
   toast('Acesso do aluno activado! Ele já pode entrar no Portal do Aluno.','success');
 }
 
-async function criarNotificacaoEncarregado(email,alunoNome,texto,alunoMt){
+async function criarNotificacaoEncarregado(email,alunoNome,texto,alunoMt,opts){
   try{
-    await fbDB.collection('notificacoes').add({
-      encEmail:email,
+    opts=opts||{};
+    const dados={
+      encEmail:email||null,
       alunoNome,
       alunoMt:alunoMt||null,
       texto,
       lida:false,
       data:firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    if(opts.expiraDias)dados.expiraEm=Date.now()+opts.expiraDias*86400000;
+    if(opts.idFixo){
+      // só cria se ainda não existir (evita repetir o mesmo aviso)
+      const ref=fbDB.collection('notificacoes').doc(opts.idFixo);
+      const ex=await ref.get();
+      if(ex.exists)return false;
+      await ref.set(dados);
+    }else{
+      await fbDB.collection('notificacoes').add(dados);
+    }
     if(typeof enfileirarPushNotificacao==='function'){
       if(email)enfileirarPushNotificacao(email,'Sistema C.P.A — '+alunoNome,texto);
       if(alunoMt)enfileirarPushNotificacao(alunoMt,'Sistema C.P.A',texto);
     }
-  }catch(e){console.error(e);}
+    return true;
+  }catch(e){console.error(e);return false;}
 }
 
 // ── SECÇÃO "MENSAGENS" (chamada pelo router goto()) ──

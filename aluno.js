@@ -56,6 +56,8 @@ function mostrarPainelAluno(){
   carregarNotificacoesAluno();
   carregarPropinasAluno();
   carregarAssiduidadeAluno();
+  carregarCabecalhoEscola();
+  pushAutoRegistar(alunoAtual.mt,'aluno',toastAl,fbDB,'avisoPush');
 }
 
 function closeModalAl(id){document.getElementById(id).classList.remove('open')}
@@ -67,8 +69,10 @@ async function carregarNotificacoesAluno(){
   el.innerHTML='<div class="empty">A carregar...</div>';
   try{
     const snap=await fbDB.collection('notificacoes').where('alunoMt','==',alunoAtual.mt).limit(50).get();
-    if(snap.empty){el.innerHTML='<div class="empty">Sem notificações.</div>';return}
-    const docsOrdenados=snap.docs.sort((a,b)=>(b.data().data?.seconds||0)-(a.data().data?.seconds||0)).slice(0,20);
+    const agora=Date.now();
+    const validos=snap.docs.filter(d=>{const x=d.data();if(x.expiraEm&&x.expiraEm<agora){d.ref.delete().catch(()=>{});return false}return true});
+    if(!validos.length){el.innerHTML='<div class="empty">Sem notificações.</div>';return}
+    const docsOrdenados=validos.sort((a,b)=>(b.data().data?.seconds||0)-(a.data().data?.seconds||0)).slice(0,20);
     el.innerHTML=docsOrdenados.map(doc=>{
       const n=doc.data();
       const dt=n.data?.toDate?n.data.toDate().toLocaleDateString('pt-PT'):'';
@@ -228,4 +232,17 @@ async function carregarAssiduidadeAluno(){
     const linhas=resumoAssiduidade(snap.docs.map(d=>d.data()),alunoAtual.nm);
     el.innerHTML=linhas.length?htmlAssiduidade(linhas):'<div class="empty">Ainda sem registos de presença.</div>';
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar assiduidade.</div>';console.error(e);}
+}
+
+// Mostra o nome e o logótipo da escola (vêm da nuvem, iguais em qualquer dispositivo)
+async function carregarCabecalhoEscola(){
+  try{
+    const doc=await fbDB.collection('config').doc('escola').get();
+    if(!doc.exists)return;
+    const e=doc.data();
+    const p=document.querySelector('.hdr p');
+    if(p&&e.nome)p.textContent=e.nome+' · Sistema C.P.A';
+    const ic=document.querySelector('.hdr .ic');
+    if(ic&&e.logo)ic.innerHTML=`<img src="${e.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:16px">`;
+  }catch(err){console.error(err);}
 }

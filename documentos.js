@@ -114,7 +114,7 @@ function gerarCertificado(alunoId){
   doc.text(`com média global de ${(b.mg||0).toFixed(1)} valores, estando apto(a) a prosseguir os seus estudos.`,148,128,{align:'center'});
   doc.setFontSize(9);doc.setTextColor(140);
   doc.text(`Emitido em ${new Date().toLocaleDateString('pt-PT')}`,148,150,{align:'center'});
-  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,172);
+  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,172,'director');
   window.open(URL.createObjectURL(doc.output('blob')),'_blank');
   toast('Certificado gerado!','success');
   if(typeof logAct==='function')logAct('Certificado de aprovação gerado',b.nm);
@@ -145,7 +145,7 @@ function gerarDeclaracao(alunoId){
   const yFinal=doc.lastAutoTable.finalY+10;
   doc.setFontSize(11);doc.setFont(undefined,'bold');
   doc.text(`Média Global: ${(b.mg||0).toFixed(2)} valores — ${b.apv?'APROVADO(A)':'REPROVADO(A)'}`,105,yFinal,{align:'center'});
-  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,yFinal+22);
+  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,yFinal+22,'director');
   doc.setFontSize(8);doc.setTextColor(150);
   doc.text('Esta declaração destina-se ao(à) Encarregado(a) de Educação · © 2026 C.A.C.T — Sistema C.P.A',105,285,{align:'center'});
   window.open(URL.createObjectURL(doc.output('blob')),'_blank');

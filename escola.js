@@ -52,14 +52,30 @@ function renderEscola(){
   renderTurmas();
 }
 
+// Reduz o logótipo (máx. 300px) para caber no Firestore e carregar depressa
+function comprimirLogoEscola(dataUrl){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=300,k=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/png'));
+    };
+    img.onerror=()=>res(dataUrl);
+    img.src=dataUrl;
+  });
+}
 function handleEscolaLogo(evt){
   const file=evt.target.files[0];
   if(!file)return;
   if(file.size>1500000){toast('Imagem muito grande! Use até 1.5MB.','error');return}
   const r=new FileReader();
-  r.onload=e=>{
-    document.getElementById('escLogoPrev').innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
-    window._escLogoTmp=e.target.result;
+  r.onload=async ev=>{
+    const peq=await comprimirLogoEscola(ev.target.result);
+    document.getElementById('escLogoPrev').innerHTML=`<img src="${peq}" style="width:100%;height:100%;object-fit:cover">`;
+    window._escLogoTmp=peq;
   };
   r.readAsDataURL(file);
 }
@@ -138,12 +154,20 @@ function escolaPdfHeader(doc,startY){
   if(linha2)doc.text(linha2,e.logo?38:20,y+5);
   return y+12;
 }
-function escolaPdfAssinatura(doc,y){
+// quem: 'director' (certificado, declaração, recibo) — por omissão assina o professor
+function escolaPdfAssinatura(doc,y,quem){
   const e=gEscola();
-  if(!e||!e.director)return;
+  let linha;
+  if(quem==='director'){
+    if(!e||!e.director)return;
+    linha='O Director: '+e.director;
+  }else{
+    const nome=(typeof PA!=='undefined'&&PA&&PA.nome)?PA.nome:'';
+    linha='O Professor: '+(nome||'_________________________');
+  }
   doc.setFontSize(9);
   doc.setTextColor(60);
   doc.setFont(undefined,'normal');
   doc.text('_______________________________',20,y);
-  doc.text('O Director: '+e.director,20,y+6);
+  doc.text(linha,20,y+6);
 }

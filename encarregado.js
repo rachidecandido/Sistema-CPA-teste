@@ -73,6 +73,8 @@ fbAuth.onAuthStateChanged(user=>{
     document.getElementById('quemEsta').textContent='👤 '+user.email;
     carregarNotificacoes();
     carregarAlunos();
+    carregarCabecalhoEscola();
+    pushAutoRegistar(encEmailAtual,'encarregado',toastEnc,fbDB,'avisoPush');
   }else{
     encEmailAtual=null;
     document.getElementById('authArea').style.display='block';
@@ -86,8 +88,10 @@ async function carregarNotificacoes(){
   el.innerHTML='<div class="empty">A carregar...</div>';
   try{
     const snap=await fbDB.collection('notificacoes').where('encEmail','==',encEmailAtual).limit(50).get();
-    if(snap.empty){el.innerHTML='<div class="empty">Sem notificações.</div>';return}
-    const docsOrdenados=snap.docs.sort((a,b)=>(b.data().data?.seconds||0)-(a.data().data?.seconds||0)).slice(0,20);
+    const agora=Date.now();
+    const validos=snap.docs.filter(d=>{const x=d.data();if(x.expiraEm&&x.expiraEm<agora){d.ref.delete().catch(()=>{});return false}return true});
+    if(!validos.length){el.innerHTML='<div class="empty">Sem notificações.</div>';return}
+    const docsOrdenados=validos.sort((a,b)=>(b.data().data?.seconds||0)-(a.data().data?.seconds||0)).slice(0,20);
     el.innerHTML=docsOrdenados.map(doc=>{
       const n=doc.data();
       const dt=n.data?.toDate?n.data.toDate().toLocaleDateString('pt-PT'):'';
@@ -335,4 +339,17 @@ async function carregarAssiduidadeEncarregado(alunos){
     }
     el.innerHTML=html||'<div class="empty">Sem turma associada.</div>';
   }catch(err){el.innerHTML='<div class="empty">Erro ao carregar assiduidade.</div>';console.error(err);}
+}
+
+// Mostra o nome e o logótipo da escola (vêm da nuvem, iguais em qualquer dispositivo)
+async function carregarCabecalhoEscola(){
+  try{
+    const doc=await fbDB.collection('config').doc('escola').get();
+    if(!doc.exists)return;
+    const x=doc.data();
+    const p=document.querySelector('.hdr p');
+    if(p&&x.nome)p.textContent=x.nome+' · Sistema C.P.A';
+    const ic=document.querySelector('.hdr .ic');
+    if(ic&&x.logo)ic.innerHTML=`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:16px">`;
+  }catch(err){console.error(err);}
 }

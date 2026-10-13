@@ -1,9 +1,10 @@
 {
+  "id": "./index.html",
   "name": "Sistema C.P.A — Classificação Pessoal do Aluno",
   "short_name": "C.P.A",
   "description": "Sistema de gestão escolar para escolas secundárias moçambicanas — CPA, Boletim, Pauta de Turma, Portal do Encarregado e do Aluno.",
   "start_url": "./index.html",
-  "scope": "./",
+  "scope": "./index.html",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0f1923",

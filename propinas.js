@@ -35,6 +35,7 @@ function renderPropinas(){
   <div class="card"><div class="ct">⚠️ Alunos em Atraso (${mesAtual})</div>
     <div class="fl">Ver turma</div><select class="fi" id="ppTurmaAtraso" onchange="renderAtrasos()" style="margin-bottom:9px"><option value="">— Seleccione —</option>${opts}</select>
     <div id="atrasosList"></div>
+    <button class="btn bs" style="width:100%;margin-top:9px" onclick="avisarAtrasosPropinas()">🔔 Avisar Encarregados e Alunos em Atraso</button>
   </div>
 
   <div class="card"><div class="ct">📋 Pagamentos Recentes</div><div id="propinasList"></div></div>`;
@@ -120,10 +121,33 @@ function gerarReciboPropina(id){
   doc.text(`Data do pagamento: ${p.dataPagamento||p.dt}`,20,y);y+=14;
   doc.setFontSize(15);doc.setFont(undefined,'bold');
   doc.text(`Valor Pago: ${p.valor.toFixed(2)} MT`,20,y);y+=20;
-  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,y+10);
+  if(typeof escolaPdfAssinatura==='function')escolaPdfAssinatura(doc,y+10,'director');
   doc.setFontSize(8);doc.setTextColor(150);
   doc.text('© 2026 C.A.C.T — Sistema C.P.A',105,290,{align:'center'});
   window.open(URL.createObjectURL(doc.output('blob')),'_blank');
   toast('Recibo gerado!','success');
   logAct('Recibo de propina gerado',p.alunoNome);
+}
+
+
+// Envia um aviso (notificação no portal + push) a cada aluno/encarregado
+// da turma que ainda não pagou a propina do mês. Só um aviso por aluno por
+// mês, e o aviso desaparece sozinho ao fim de 7 dias.
+async function avisarAtrasosPropinas(){
+  const turma=document.getElementById('ppTurmaAtraso').value;
+  if(!turma){toast('Seleccione uma turma!','error');return}
+  const mes=new Date().toISOString().slice(0,7);
+  const pagos=new Set(gPropinas().filter(p=>p.turma===turma&&p.mes===mes).map(p=>p.alunoNome));
+  const emAtraso=dBol.filter(b=>b.tr===turma&&!pagos.has(b.nm));
+  if(!emAtraso.length){toast('Nenhum aluno em atraso nesta turma.','info');return}
+  const comContacto=emAtraso.filter(a=>a.encEmail||a.mt);
+  if(!comContacto.length){toast('Nenhum dos alunos em atraso tem encarregado ou acesso ao portal activado.','error');return}
+  if(typeof fbDB==='undefined'||!fbDB){toast('Sem ligação ao servidor.','error');return}
+  let enviados=0,jaAvisados=0;
+  for(const a of comContacto){
+    const ok=await criarNotificacaoEncarregado(a.encEmail,a.nm,`💵 Propina de ${mes} por pagar: ${a.nm}. Por favor regularize junto da escola.`,a.mt,{idFixo:`atraso_${PA?PA.id:'x'}_${a.id}_${mes}`,expiraDias:7});
+    if(ok)enviados++;else jaAvisados++;
+  }
+  logAct('Aviso de propinas em atraso',turma+' — '+enviados+' avisos');
+  toast(`${enviados} aviso(s) enviado(s)`+(jaAvisados?` · ${jaAvisados} já tinham sido avisados este mês`:'')+'.','success');
 }

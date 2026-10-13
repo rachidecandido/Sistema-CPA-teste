@@ -69,6 +69,7 @@ td:first-child{text-align:left;font-weight:600}
 
   <div id="appArea">
     <div class="topbar"><span class="who" id="quemEsta"></span><button class="sair" style="color:var(--tx);font-size:1.1rem" onclick="document.getElementById('moMenuAluno').classList.add('open')">☰</button></div>
+    <div class="card" id="avisoPush" style="display:none;border-color:var(--ac)"><div style="font-size:.8rem;margin-bottom:8px">🔔 Receba avisos de notas, propinas e materiais neste telemóvel.</div><button class="btn" style="margin-bottom:0" onclick="ativarNotificacoesPush(alunoAtual.mt,'aluno',toastAl,fbDB).then(ok=>{if(ok)document.getElementById('avisoPush').style.display='none'})">Activar Notificações</button></div>
     <div class="card" id="notasCard"></div>
     <div class="card" id="secNotifAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">⚠️ Notificações</div><div id="notifAlunoList"></div></div>
     <div class="card" id="secAssidAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📋 Assiduidade (presenças)</div><div id="assidAlunoList"></div></div>

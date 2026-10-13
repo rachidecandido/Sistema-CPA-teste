@@ -1,9 +1,10 @@
 {
+  "id": "./aluno.html",
   "name": "Portal do Aluno — Sistema C.P.A",
   "short_name": "Portal Aluno",
   "description": "Veja as suas notas e materiais de apoio.",
   "start_url": "./aluno.html",
-  "scope": "./",
+  "scope": "./aluno.html",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0f1923",

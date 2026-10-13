@@ -65,3 +65,24 @@ async function enfileirarPushNotificacao(destinatarioId,titulo,corpo){
     console.error('Erro ao enfileirar notificação push:',e);
   }
 }
+
+
+// Regista automaticamente ESTE dispositivo (se a permissão já foi dada) ou
+// mostra um aviso com botão para activar. Corre sempre que a pessoa entra
+// no portal, para que cada telemóvel/computador onde entra fique registado.
+async function pushAutoRegistar(destinatarioId,tipo,funcaoToast,funcaoDB,elementoAvisoId){
+  const aviso=document.getElementById(elementoAvisoId);
+  try{
+    if(!('Notification' in window)||!('serviceWorker' in navigator)||typeof firebase==='undefined'||!firebase.messaging)return;
+    if(Notification.permission==='granted'){
+      const registo=await navigator.serviceWorker.register('firebase-messaging-sw.js');
+      const token=await firebase.messaging().getToken({vapidKey:VAPID_KEY_CPA,serviceWorkerRegistration:registo});
+      if(token){
+        await (funcaoDB||fbDB).collection('fcm_tokens').doc(token).set({token,destinatario:destinatarioId,tipo,criadoEm:firebase.firestore.FieldValue.serverTimestamp()});
+      }
+      if(aviso)aviso.style.display='none';
+    }else if(Notification.permission==='default'&&aviso){
+      aviso.style.display='block';
+    }
+  }catch(e){console.error('Registo automático de notificações:',e);}
+}

@@ -1,9 +1,10 @@
 {
+  "id": "./encarregado.html",
   "name": "Portal do Encarregado — Sistema C.P.A",
   "short_name": "Portal Encarreg.",
   "description": "Acompanhe as notas e materiais de apoio do seu educando.",
   "start_url": "./encarregado.html",
-  "scope": "./",
+  "scope": "./encarregado.html",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0f1923",

@@ -67,7 +67,7 @@ function salvarFrequencia(){
   });
   const freq=gFreq();
   const idx=freq.findIndex(r=>r.turma===turma&&r.data===data);
-  const registo={turma,data,presencas};
+  const registo={turma,data,presencas,updatedAt:Date.now()};
   if(idx>=0)freq[idx]=registo;else freq.push(registo);
   sFreq(freq);
   logAct('Presença registada',turma+' — '+data);
@@ -151,7 +151,7 @@ async function syncFrequenciaFirebase(registo){
       turma:registo.turma,
       data:registo.data,
       lista:Object.keys(registo.presencas).map(nm=>({nm,p:registo.presencas[nm]!==false})),
-      updatedAt:Date.now()
+      updatedAt:registo.updatedAt||Date.now()
     });
   }catch(e){console.error(e);}
 }
@@ -164,12 +164,14 @@ async function pullFrequenciaFirebase(){
     snap.forEach(doc=>{
       const d=doc.data();
       remotos.add(d.turma+'|'+d.data);
-      if(freq.some(r=>r.turma===d.turma&&r.data===d.data))return; // o local manda
       const presencas={};
       (d.lista||[]).forEach(x=>presencas[x.nm]=x.p);
-      freq.push({turma:d.turma,data:d.data,presencas});
+      const idx=freq.findIndex(r=>r.turma===d.turma&&r.data===d.data);
+      if(idx<0)freq.push({turma:d.turma,data:d.data,presencas,updatedAt:d.updatedAt||0});
+      else if((d.updatedAt||0)>(freq[idx].updatedAt||0))freq[idx]={turma:d.turma,data:d.data,presencas,updatedAt:d.updatedAt};
     });
     sFreq(freq);
+    if(document.getElementById('frTurma')){buildFreqTable();renderMapaAssiduidade();}
     // envia para a nuvem os registos antigos que ainda só existem neste dispositivo
     freq.filter(r=>!remotos.has(r.turma+'|'+r.data)).forEach(r=>syncFrequenciaFirebase(r));
   }catch(e){console.error(e);}
@@ -185,3 +187,7 @@ salvarFrequencia=function(){
 };
 const _origActivateProfFreq=activateProf;
 activateProf=function(prof){_origActivateProfFreq(prof);pullFrequenciaFirebase();};
+
+// Ao abrir a secção Frequência, vai buscar à nuvem o que foi registado noutro dispositivo
+const _origRenderFrequencia=renderFrequencia;
+renderFrequencia=function(){_origRenderFrequencia();pullFrequenciaFirebase();};
