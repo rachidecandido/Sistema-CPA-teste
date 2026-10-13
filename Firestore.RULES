@@ -52,6 +52,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Frequência/Assiduidade — escrita pelo professor, leitura pelos portais
+    match /frequencia/{freqId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Contas de Professor (email/senha) — só o próprio dono (pelo UID de login)
     // pode ler/escrever a sua ficha, que liga a conta ao identificador antigo
     match /professores/{uid} {
