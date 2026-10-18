@@ -58,6 +58,22 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Horário das aulas — escrito pelo professor, lido pelos portais
+    match /horario/{aulaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Cópia de segurança automática do professor (sem PINs/senhas)
+    match /backups/{profId} {
+      allow read: if true;
+      allow write: if true;
+      match /partes/{parteId} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
     // Contas de Professor (email/senha) — só o próprio dono (pelo UID de login)
     // pode ler/escrever a sua ficha, que liga a conta ao identificador antigo
     match /professores/{uid} {
