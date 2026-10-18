@@ -83,6 +83,11 @@ async function pushAutoRegistar(destinatarioId,tipo,funcaoToast,funcaoDB,element
       if(aviso)aviso.style.display='none';
     }else if(Notification.permission==='default'&&aviso){
       aviso.style.display='block';
+    }else if(Notification.permission==='denied'&&aviso){
+      aviso.style.display='block';
+      const t=aviso.querySelector('div'),b=aviso.querySelector('button');
+      if(t)t.textContent='🔕 As notificações estão bloqueadas neste dispositivo. No Chrome: toque no ⋮ → Definições → Definições do site → Notificações → permitir este site. Depois recarregue a página.';
+      if(b)b.style.display='none';
     }
   }catch(e){console.error('Registo automático de notificações:',e);}
 }

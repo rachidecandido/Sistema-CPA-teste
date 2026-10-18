@@ -75,6 +75,7 @@ fbAuth.onAuthStateChanged(user=>{
     carregarAlunos();
     carregarCabecalhoEscola();
     pushAutoRegistar(encEmailAtual,'encarregado',toastEnc,fbDB,'avisoPush');
+    iniciarMonitorNotificacoes('cpa_vistas_enc_'+encEmailAtual,async()=>(await fbDB.collection('notificacoes').where('encEmail','==',encEmailAtual).limit(50).get()).docs,carregarNotificacoes);
   }else{
     encEmailAtual=null;
     document.getElementById('authArea').style.display='block';
@@ -151,6 +152,8 @@ async function carregarAlunos(){
     const turmas=[...new Set(snap.docs.map(doc=>doc.data().tr).filter(Boolean))];
     const nomesAlunos=snap.docs.map(doc=>doc.data().nm);
     carregarMateriaisEncarregado(turmas);
+    carregarHorarioPortal(turmas,'horarioEncList');
+    carregarDatasPortal(turmas,'datasEncList');
     carregarPropinasEncarregado(nomesAlunos);
     carregarAssiduidadeEncarregado(snap.docs.map(doc=>doc.data()));
   }catch(e){el.innerHTML='<div class="empty">Erro ao carregar dados. Verifique a ligação à internet.</div>';console.error(e);}

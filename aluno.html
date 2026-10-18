@@ -72,6 +72,8 @@ td:first-child{text-align:left;font-weight:600}
     <div class="card" id="avisoPush" style="display:none;border-color:var(--ac)"><div style="font-size:.8rem;margin-bottom:8px">🔔 Receba avisos de notas, propinas e materiais neste telemóvel.</div><button class="btn" style="margin-bottom:0" onclick="ativarNotificacoesPush(alunoAtual.mt,'aluno',toastAl,fbDB).then(ok=>{if(ok)document.getElementById('avisoPush').style.display='none'})">Activar Notificações</button></div>
     <div class="card" id="notasCard"></div>
     <div class="card" id="secNotifAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">⚠️ Notificações</div><div id="notifAlunoList"></div></div>
+    <div class="card" id="secHorarioAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">🕒 Horário das Aulas</div><div id="horarioAlunoList"></div></div>
+    <div class="card" id="secDatasAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📅 Próximas Datas (provas, entregas, reuniões)</div><div id="datasAlunoList"></div></div>
     <div class="card" id="secAssidAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📋 Assiduidade (presenças)</div><div id="assidAlunoList"></div></div>
     <div class="card" id="secPropinasAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">💵 Situação de Propinas</div><div id="propinasAlunoList"></div></div>
     <div class="card" id="secMateriaisAluno"><div style="font-weight:700;font-size:.86rem;margin-bottom:9px">📚 Materiais de Apoio</div><div id="matAlunoList"></div></div>
@@ -81,6 +83,9 @@ td:first-child{text-align:left;font-weight:600}
 <div class="mo" id="moMenuAluno"><div class="md">
   <div style="font-weight:800;font-size:.95rem;margin-bottom:11px">☰ Menu</div>
   <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');document.getElementById('secNotifAluno').scrollIntoView({behavior:'smooth'})">⚠️ Notificações</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');document.getElementById('secHorarioAluno').scrollIntoView({behavior:'smooth'})">🕒 Horário das Aulas</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');document.getElementById('secDatasAluno').scrollIntoView({behavior:'smooth'})">📅 Próximas Datas</button>
+  <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');testarNotificacoesPortal(alunoAtual.mt,'aluno',toastAl)">🔔 Testar Notificações neste Dispositivo</button>
   <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');document.getElementById('secAssidAluno').scrollIntoView({behavior:'smooth'})">📋 Assiduidade</button>
   <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');document.getElementById('secPropinasAluno').scrollIntoView({behavior:'smooth'})">💵 Situação de Propinas</button>
   <button class="btn sec" style="margin-bottom:8px" onclick="closeModalAl('moMenuAluno');document.getElementById('secMateriaisAluno').scrollIntoView({behavior:'smooth'})">📚 Materiais de Apoio</button>
@@ -95,6 +100,7 @@ td:first-child{text-align:left;font-weight:600}
 
 <script src="firebase-config.js"></script>
 <script src="push.js"></script>
+<script src="portal-extras.js"></script>
 <script src="aluno.js"></script>
 </body>
 </html>

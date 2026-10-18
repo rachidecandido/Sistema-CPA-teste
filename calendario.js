@@ -35,44 +35,32 @@ function criarEventoCal(){
   if(!titulo){toast('Insira o título do evento!','error');return}
   if(!data){toast('Insira a data!','error');return}
   const eventos=gCalEventos();
-  eventos.push({id:Date.now(),titulo,tipo,data,turma,desc});
+  const novoEv={id:Date.now(),titulo,tipo,data,turma,desc};
+  eventos.push(novoEv);
   sCalEventos(eventos);
   ['calTit','calTurma','calDesc'].forEach(id=>document.getElementById(id).value='');
   logAct('Evento adicionado ao calendário',titulo+' — '+data);
   toast('Evento adicionado!','success');
   renderListaCal();
   // Reuniões associadas a uma turma notificam automaticamente os encarregados vinculados
-  if(tipo==='reuniao'&&turma&&typeof fbDB!=='undefined'&&fbDB){
-    notificarEncarregadosReuniao(titulo,data,turma,desc);
+  if(['reuniao','exame','entrega'].includes(tipo)&&turma&&typeof fbDB!=='undefined'&&fbDB){
+    notificarEncarregadosReuniao(titulo,data,turma,desc,tipo,novoEv.id);
   }
 }
 
-async function notificarEncarregadosReuniao(titulo,data,turma,desc){
+async function notificarEncarregadosReuniao(titulo,data,turma,desc,tipo,evId){
   try{
+    tipo=tipo||'reuniao';
+    const rot={reuniao:'📅 Reunião marcada',exame:'📝 Prova/Exame marcado',entrega:'📥 Entrega marcada'}[tipo]||'📅 Evento marcado';
     const dataFmt=new Date(data+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
     const alunosDaTurma=(typeof dBol!=='undefined'?dBol:[]).filter(b=>b.tr===turma&&(b.encEmail||b.mt));
     if(!alunosDaTurma.length)return;
-    const avisados=new Set();
     let contador=0;
     for(const a of alunosDaTurma){
-      const chave=(a.encEmail||'')+'|'+(a.mt||'');
-      if(avisados.has(chave))continue;
-      avisados.add(chave);
-      await fbDB.collection('notificacoes').add({
-        encEmail:a.encEmail||null,
-        alunoMt:a.mt||null,
-        alunoNome:a.nm,
-        texto:`📅 Reunião marcada: "${titulo}" no dia ${dataFmt}${desc?' — '+desc:''}`,
-        lida:false,
-        data:firebase.firestore.FieldValue.serverTimestamp()
-      });
-      if(typeof enfileirarPushNotificacao==='function'){
-        if(a.encEmail)enfileirarPushNotificacao(a.encEmail,'📅 Reunião — Sistema C.P.A',`"${titulo}" no dia ${dataFmt}`);
-        if(a.mt)enfileirarPushNotificacao(a.mt,'📅 Reunião — Sistema C.P.A',`"${titulo}" no dia ${dataFmt}`);
-      }
-      contador++;
+      const ok=await criarNotificacaoEncarregado(a.encEmail,a.nm,`${rot}: "${titulo}" no dia ${dataFmt}${desc?' — '+desc:''}`,a.mt,{idFixo:`cal_${evId||Date.now()}_${a.id}`,expiraDias:14});
+      if(ok)contador++;
     }
-    if(contador)toast(contador+' aluno(s)/encarregado(s) notificado(s) da reunião.','success');
+    if(contador)toast(contador+' aluno(s)/encarregado(s) notificado(s).','success');
   }catch(e){console.error(e);}
 }
 

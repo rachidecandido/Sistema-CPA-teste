@@ -57,7 +57,10 @@ function mostrarPainelAluno(){
   carregarPropinasAluno();
   carregarAssiduidadeAluno();
   carregarCabecalhoEscola();
+  carregarHorarioPortal([alunoAtual.tr],'horarioAlunoList');
+  carregarDatasPortal([alunoAtual.tr],'datasAlunoList');
   pushAutoRegistar(alunoAtual.mt,'aluno',toastAl,fbDB,'avisoPush');
+  iniciarMonitorNotificacoes('cpa_vistas_aluno_'+alunoAtual.mt,async()=>(await fbDB.collection('notificacoes').where('alunoMt','==',alunoAtual.mt).limit(50).get()).docs,carregarNotificacoesAluno);
 }
 
 function closeModalAl(id){document.getElementById(id).classList.remove('open')}
